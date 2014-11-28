@@ -10,24 +10,8 @@
 #include <stdlib.h> //null value
 #include <netdb.h> //net database
 
-void error(char *msg) {
-	perror(msg);
-	exit(0);
-}
-
-int checkExitMsg(char *msg) {
-	int i = 0, ret = 0;
-	if (msg[0] == 'e') {
-		if (msg[1] == 'x') {
-			if (msg[2] == 'i') {
-				if (msg[3] == 't') {
-					ret = 1;
-				}
-			}
-		}
-	}
-	return ret;
-}
+void error(char *msg);
+int checkExitMsg(char *msg);
 
 int main(int argc, char *argv[]) {
 	//for reference, look tcpserver.c
@@ -87,6 +71,25 @@ int main(int argc, char *argv[]) {
 		//get the message input
 		fgets(buffer, 255, stdin);
 	}
+	close(sockfd);
 	return 0;
-	//lanjut http://www.linuxhowtos.org/C_C++/socket.htm
+}
+
+void error(char *msg) {
+	perror(msg);
+	exit(0);
+}
+
+int checkExitMsg(char *msg) {
+	int i = 0, ret = 0;
+	if (msg[0] == 'e') {
+		if (msg[1] == 'x') {
+			if (msg[2] == 'i') {
+				if (msg[3] == 't') {
+					ret = 1;
+				}
+			}
+		}
+	}
+	return ret;
 }

@@ -13,16 +13,17 @@
 
 void error(char *msg);
 int checkExitMsg(char *msg);
-void write();
-void read();
+void writeUsername();
+void readUsername();
 int checkUsername(char *input);
+void *connection_handler(void *socket_desc);
 
 /* Main Program */
 
 int main(int argc, char *argv[]) {
-	int sockfd, newsockfd; //socket syscall, acc syscall
+	int sockfd, *newsockfd; //socket syscall, acc syscall
 	int portno; //port number server acc connection
-	int clilen; //size client address
+	int clilen, clisock; //size client address and client socket
 	int n; //value for the read(), write() calls
 	char buffer[256]; //reads char from socket conn
 	//client address and server address
@@ -54,29 +55,38 @@ int main(int argc, char *argv[]) {
 	//client address recognized
 	clilen = sizeof(cli_addr);
 	//new file descriptor, client addr ptr, struct size
-	newsockfd = accept(sockfd, (struct sockaddr *) &cli_addr, &clilen);
-	if (newsockfd < 0)
-		error("ERROR on accept");
-	//initialize the buffer
-	bzero(buffer,256);
-	//read from socket, buffer 0-255, 256 size
-	//read method block operation until client send smth
-	n = read(newsockfd, buffer, 255);
-	if (n <  0) error("ERROR reading from socket");
-	//finishes reading, printing the message
-	while (!checkExitMsg(buffer)) {
-		printf("Here is the message: %s", buffer);
-		//n determines if the message succesfully written
-		//into the socket, length = 18
-		n = write(newsockfd, "I got your message\n", 18);
-		if (n < 0) error("ERROR writing to socket");
+	while (clisock = accept(sockfd, (struct sockaddr *) &cli_addr, &clilen)) {
+		pthread_t conn_thread;
+		newsockfd = malloc(1);
+		*newsockfd = clisock;
+		if (pthread_create(&conn_thread,NULL,connection_handler,(void *) newsockfd) < 0) {
+			perror("Couldn't create thread\n");
+			return 1;
+		}
+		printf("Handler assigned\n");		
 		//initialize the buffer
 		bzero(buffer,256);
 		//read from socket, buffer 0-255, 256 size
 		//read method block operation until client send smth
-		n = read(newsockfd, buffer, 255);
+		n = read(clisock, buffer, 255);
 		if (n <  0) error("ERROR reading from socket");
+		//finishes reading, printing the message
+		while (!checkExitMsg(buffer)) {
+			printf("Here is the message: %s", buffer);
+			//n determines if the message succesfully written
+			//into the socket, length = 18
+			n = write(clisock, "I got your message\n", 18);
+			if (n < 0) error("ERROR writing to socket");
+			//initialize the buffer
+			bzero(buffer,256);
+			//read from socket, buffer 0-255, 256 size
+			//read method block operation until client send smth
+			n = read(clisock, buffer, 255);
+			if (n <  0) error("ERROR reading from socket");
+		}
 	}
+	if (newsockfd < 0)
+		error("ERROR on accept");
 	return 0;
 }
 
@@ -100,7 +110,7 @@ int checkExitMsg(char *msg) {
 	return ret;
 }
 
-void write() {
+void writeUsername() {
 	char user[255], pass[255];
 	FILE *f = fopen("assets/users.txt","a");
 	if (f) {
@@ -115,7 +125,7 @@ void write() {
 	}
 }
 
-void read() {
+void readUsername() {
 	char output[255];
 	FILE *f = fopen("assets/users.txt","r");
 	if (f) {
@@ -143,7 +153,6 @@ int checkUsername(char *input) {
 					if (input[i] == NULL && output[i] == '\t') { //kalau lanjut sampai akhir
 						ret = 1;
 						stat = 0;
-						printf("Username sudah ada\n");
 					}
 				}
 			}
@@ -152,4 +161,22 @@ int checkUsername(char *input) {
 		fclose(f);
 	}
 	return ret;
+}
+
+void *connection_handler(void *socket_desc) {
+    //Get the socket descriptor
+    int sock = *(int*)socket_desc;
+    int n;
+    char sendBuff[100], client_message[2000];
+    while((n=recv(sock,client_message,2000,0))>0) {
+        send(sock,client_message,n,0);
+    }
+    close(sock);
+    if(n==0) {
+        puts("Client Disconnected");
+    }
+	else {
+        perror("recv failed");
+	}
+    return 0;
 }
