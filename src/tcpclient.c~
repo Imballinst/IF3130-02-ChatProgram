@@ -14,7 +14,7 @@ int checkExitMsg(char *msg) {
 	if (msg[0] == 'e') {
 		if (msg[1] == 'x') {
 			if (msg[2] == 'i') {
-				if (msg[3] == 't') {
+				if (msg[2] == 't') {
 					ret = 1;
 				}
 			}
