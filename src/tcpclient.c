@@ -1,3 +1,7 @@
+/* File  : tcpclient.c
+ * Author: Try Ajitiono / 13512052
+ */
+
 #include <stdio.h>
 #include <sys/types.h>
 #include <sys/socket.h>

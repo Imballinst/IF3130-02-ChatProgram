@@ -1,3 +1,7 @@
+/* File  : tcpclient.c
+ * Author: Try Ajitiono / 13512052
+ */
+
 #include <stdio.h> //input output
 #include <sys/types.h> //data types
 #include <sys/socket.h> //struct definition socket
