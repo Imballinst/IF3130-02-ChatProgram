@@ -1,70 +1,85 @@
-#include <stdio.h>
-#include <sys/socket.h>
-#include <arpa/inet.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-#include <netinet/in.h>
+#include <stdio.h> //input output
+#include <sys/types.h> //data types
+#include <sys/socket.h> //struct definition socket
+#include <netinet/in.h> //const, structs, inet domain addr
 
-#define MAXPENDING 5    /* Max connection requests */
-#define BUFFSIZE 32
-void Die(char *mess) { perror(mess); exit(1); }
+void error(char *msg) {
+	//used when system call fails
+	perror(msg);
+	exit(1);
+}
 
-void HandleClient(int sock) {
-	char buffer[BUFFSIZE];
-	int received = -1;
-	/* Receive Message */
-	if ((received = recv(sock, buffer, BUFFSIZE, 0)) < 0) {
-		Die("Failed to receive initial bytes from client");
-	}
-	/* Send bytes and check for more incoming data in loop */
-	while (received > 0) {
-		if (send(sock, buffer, received, 0) != received) {
-			Die("Failed to send bytes to client");
-		}
-		/* Check for more data */
-		if ((received = recv(sock, buffer, BUFFSIZE, 0)) < 0) {
-			Die("Failed to receive additional bytes from client");
+int checkExitMsg(char *msg) {
+	int i = 0, ret = 0;
+	if (msg[0] == 'e') {
+		if (msg[1] == 'x') {
+			if (msg[2] == 'i') {
+				if (msg[3] == 't') {
+					ret = 1;
+				}
+			}
 		}
 	}
-	close(sock);
+	return ret;
 }
 
 int main(int argc, char *argv[]) {
-	int serversock, clientsock;
-	struct sockaddr_in echoserver, echoclient;
-	
-	if (argc != 2) {
-		fprintf(stderr, "USAGE: echoserver <port>\n");
+	int sockfd, newsockfd; //socket syscall, acc syscall
+	int portno; //port number server acc connection
+	int clilen; //size client address
+	int n; //value for the read(), write() calls
+	char buffer[256]; //reads char from socket conn
+	//client address and server address
+	struct sockaddr_in serv_addr, cli_addr;
+	//user must provide port on program argument run
+	if (argc < 2) {
+		fprintf(stderr, "ERROR, no port provided");
 		exit(1);
 	}
-	/* Create the TCP socket */
-	if ((serversock = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0) {
-		Die("Failed to create socket");
+	//create socket: domain, type, protocol
+	sockfd = socket(AF_INET, SOCK_STREAM, 0);
+	//if socket fails to open
+	if (sockfd < 0) {
+		error("ERROR opening socket");
 	}
-	/* Construct the server sockaddr in structure */
-	memset(&echoserver, 0, sizeof(echoserver)); // clear struct
-	echoserver.sin_family = AF_INET; // internet/IP
-	echoserver.sin_addr.s_addr = htonl(INADDR_ANY); //incoming addr
-	echoserver.sin_port = htons(atoi(argv[1])); //server port
-	
-	/* Bind the server socket */
-	if (bind(serversock, (struct sockaddr *) &echoserver, sizeof(echoserver)) < 0) {
-		Die("Failed to bind the server socket");
-	}	
-	/* Listen on the server socket */
-	if (listen(serversock, MAXPENDING) < 0) {
-		Die("Failed to listen on server socket");
+	//set every buffer to zero
+	bzero((char *) &serv_addr, sizeof(serv_addr));
+	//set the port to 1st argument of the run sentence
+	portno = atoi(argv[1]); //digits -> integer
+	//set sockaddr_in attribute
+	serv_addr.sin_family = AF_INET; //absolute
+	serv_addr.sin_port = htons(portno); //port number
+	serv_addr.sin_addr.s_addr = INADDR_ANY; //host ipaddr
+	//socket use fail check
+	if (bind(sockfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0)
+		error("ERROR on binding");
+	//socket file descriptor and number of queue allowed
+	listen(sockfd,5);
+	//client address recognized
+	clilen = sizeof(cli_addr);
+	//new file descriptor, client addr ptr, struct size
+	newsockfd = accept(sockfd, (struct sockaddr *) &cli_addr, &clilen);
+	if (newsockfd < 0)
+		error("ERROR on accept");
+	//initialize the buffer
+	bzero(buffer,256);
+	//read from socket, buffer 0-255, 256 size
+	//read method block operation until client send smth
+	n = read(newsockfd, buffer, 255);
+	if (n <  0) error("ERROR reading from socket");
+	//finishes reading, printing the message
+	while (!checkExitMsg(buffer)) {
+		printf("Here is the message: %s", buffer);
+		//n determines if the message succesfully written
+		//into the socket, length = 18
+		n = write(newsockfd, "I got your message\n", 18);
+		if (n < 0) error("ERROR writing to socket");
+		//initialize the buffer
+		bzero(buffer,256);
+		//read from socket, buffer 0-255, 256 size
+		//read method block operation until client send smth
+		n = read(newsockfd, buffer, 255);
+		if (n <  0) error("ERROR reading from socket");
 	}
-	
-	/* Run until cancelled */
-	while (1) {
-		unsigned int clientlen = sizeof(echoclient);
-		/* Wait for client conection */
-		if ((clientsock = accept(serversock, (struct sockaddr *) &echoclient, &clientlen)) < 0) {
-			Die("Failed to accept client connection");
-		}
-		fprintf(stdout, "Client connected: %s\n", inet_ntoa(echoclient.sin_addr));
-		HandleClient(clientsock);
-	}
+	return 0;
 }

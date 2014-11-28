@@ -1,57 +1,86 @@
 #include <stdio.h>
+#include <sys/types.h>
 #include <sys/socket.h>
-#include <arpa/inet.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
 #include <netinet/in.h>
+#include <netdb.h>
 
-#define BUFFSIZE 32
-void Die (char *mess) { perror(mess); exit(1); }
+void error(char *msg) {
+	perror(msg);
+	exit(0);
+}
+
+int checkExitMsg(char *msg) {
+	int i = 0, ret = 0;
+	if (msg[0] == 'e') {
+		if (msg[1] == 'x') {
+			if (msg[2] == 'i') {
+				if (msg[2] == 't') {
+					ret = 1;
+				}
+			}
+		}
+	}
+	return ret;
+}
 
 int main(int argc, char *argv[]) {
-	int sock;
-	struct sockaddr_in echoserver;
-	char buffer[BUFFSIZE];
-	unsigned int echolen;
-	int received = 0;
-	
-	if (argc != 4) {
-		fprintf(stderr, "USAGE: TCPecho <server_ip> <word> <port>\n");
+	//for reference, look tcpserver.c
+	int sockfd, portno, n;
+	struct sockaddr_in serv_addr;
+	//pointer to hostent structure, defines host computer
+	//on the internet
+	struct hostent *server;
+	//common: start the program with arguments
+	char buffer[256];
+	if (argc < 3) {
+		fprintf(stderr, "Usage %s hostname port", argv[0]);
+		exit(0);
 	}
-	/* Create the TCP socket */
-	if ((sock = socket(PF_INET, SOCK_STREAM,IPPROTO_TCP)) < 0) {
-		Die("Failed to create socket");
+	//set port number and socket file descriptor
+	portno = atoi(argv[2]);
+	sockfd = socket(AF_INET, SOCK_STREAM, 0);
+	if (sockfd < 0)
+		error("ERROR opening socket");
+	//get hostname address
+	server = gethostbyname(argv[1]);
+	if (server == NULL) {
+		fprintf(stderr, "ERROR, no such host");
+		exit(0);
 	}
-	
-	/* Construct the server sockaddr_in structure */
-	memset(&echoserver, 0, sizeof(echoserver)); //clear struct
-	echoserver.sin_family = AF_INET; //internet/IP
-	echoserver.sin_addr.s_addr = inet_addr(argv[1]); //ip address
-	echoserver.sin_port = htons(atoi(argv[3])); //server port
-	
-	/* Establish connection */
-	if (connect(sock, (struct sockaddr *) &echoserver, sizeof(echoserver)) < 0) {
-		Die("Failed to connect with server");
+	//the same as in tcpserver.c
+	bzero((char *) &serv_addr, sizeof(serv_addr));
+	serv_addr.sin_family = AF_INET;
+	//copy the length bytes from server host address
+	//to s_addr in sin_addr in serv_addr variable
+	bcopy((char *)server->h_addr, (char *)&serv_addr.sin_addr.s_addr, server->h_length);
+	serv_addr.sin_port = htons(portno);
+	//if connection to server fails
+	if (connect (sockfd, &serv_addr, sizeof(serv_addr)) < 0)
+		error("ERROR connecting");
+	printf("Please enter the message: ");
+	//set buffer to zero
+	bzero(buffer,256);
+	//get the message input
+	fgets(buffer, 255, stdin);
+	while (!checkExitMsg(buffer)) {
+		//n returns 1 if success writing into socket file descriptor
+		n = write(sockfd, buffer, strlen(buffer));
+		//if fail
+		if (n < 0)
+			error("ERROR writing to socket");
+		//set buffer to zero
+		bzero(buffer,256);
+		//n returns 1 if success reading from buffer
+		n=  read(sockfd, buffer, 255);
+		if (n < 0)
+			error("ERROR reading from socket");
+		printf("%s", buffer);
+		printf("Please enter the message: ");
+		//set buffer to zero
+		bzero(buffer,256);
+		//get the message input
+		fgets(buffer, 255, stdin);
 	}
-	
-	/* Send the word to the server */
-	echolen = strlen(argv[2]);
-	if (send(sock, argv[2], echolen, 0) != echolen) {
-		Die("Mismatch in number of sent bytes");
-	}
-	/* Receive the word back from the server */
-	fprintf(stdout, "Received: ");
-	while (received < echolen) {
-		int bytes = 0;
-		if ((bytes = recv(sock, buffer, BUFFSIZE-1, 0)) < 1) {
-			Die("Failed to receive bytes from server");
-		}
-		received += bytes;
-		buffer[bytes] = '\0'; //assure null terminated string
-		fprintf(stdout, buffer);
-	}
-	fprintf(stdout, "\n");
-	close(sock);
-	exit(0);
+	return 0;
+	//lanjut http://www.linuxhowtos.org/C_C++/socket.htm
 }
