@@ -20,9 +20,9 @@
 
 /* Header fungsi dan prosedur */
 
-int checkUsername(char *input);
-/* Mengecek apakah username sudah ada di database (file eksternal) atau belum
- * Param: string username. Return: integer (1) apabila sudah ada, (0) apabila belum ada
+int checkExitMsg(char *msg);
+/* Melakukan cek apakah pesan yang dikirim merupakan pesan keluar dari aplikasi (hanya untuk client)
+ * Param: string pesan. Return: integer (1) apabila pesan yang dikirim adalah "exit", (0) apabila bukan
  */
 
 /* Program Utama */
@@ -30,7 +30,7 @@ int checkUsername(char *input);
 int main(int argc, char *argv[]) {
 	//deklarasi variabel
 	int sockfd, rw; //file deskriptor dan penampung return value read/write
-	char *buffer;
+	char *buffer, *comparison; //buffer pesan dan comparison untuk dimasukkan ke fungsi
 	//deklarasi struktur
 	struct addrinfo flags; //parameter yang digunakan untuk melakukan listen socket
 	struct addrinfo *server_info; //resultset yang diset oleh getaddrinfo()
@@ -39,8 +39,9 @@ int main(int argc, char *argv[]) {
 		fprintf(stderr, "Usage: ./client <hostname/address> <port>");
 		exit(-1);
 	}
-	//inisialisasi buffer
+	//inisialisasi buffer dan comparison
 	buffer = malloc(BUFFER_SIZE);
+	comparison = malloc(BUFFER_SIZE);
 	//mengosongkan memori flags
 	memset(&flags, 0, sizeof(flags));
 	//mengisi struktur flags
@@ -64,8 +65,10 @@ int main(int argc, char *argv[]) {
 		printf("Connection established, please enter a message:\n");
 		//mengosongkan buffer
 		bzero(buffer, BUFFER_SIZE);
+		bzero(comparison, BUFFER_SIZE);
 		//mengisi buffer dengan pesan
 		fgets(buffer, BUFFER_SIZE - 1, stdin);
+		strcpy(comparison,buffer);
 		//write isi pesan ke dalam buffer lalu dimasukkan ke socket untuk dikirim
 		rw = write(sockfd, buffer, strlen(buffer));
 		if (rw < 0)	{ //apabila gagal
@@ -81,7 +84,11 @@ int main(int argc, char *argv[]) {
 			exit(-1);
 		}
 		printf("The message is: %s\n", buffer);
-	} while (1); //selama bukan "exit"
+	} while (checkExitMsg(comparison) == 0); //selama bukan "exit"
+	//dealokasi memori
+	free(buffer);
+	free(comparison);
+	freeaddrinfo(server_info);
 	//menutup socket setelah exit
 	close(sockfd);
 	return 0;
@@ -89,11 +96,14 @@ int main(int argc, char *argv[]) {
 
 int checkExitMsg(char *msg) {
 	int ret = 0; //ret bernilai 1 apabila pesan bernilai "exit"
+	printf("checkExitMsg: %s", msg);
 	if (msg[0] == 'e') {
 		if (msg[1] == 'x') {
 			if (msg[2] == 'i') {
 				if (msg[3] == 't') {
-					ret = 1;
+					if (msg[4] == '\n') {
+						ret = 1;
+					}
 				}
 			}
 		}

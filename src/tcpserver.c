@@ -33,14 +33,14 @@ void writeUsername();
  * User diminta memasukkan username yang belum ada di file eksternal, apabila sudah ada, akan diminta pengulangan.
  * Setelah melewati proses validasi username, pengguna akan diminta untuk menginput password, lalu akan masuk ke file eksternal.
  */
-int checkExitMsg(char *msg);
-/* Melakukan cek apakah pesan yang dikirim merupakan pesan keluar dari aplikasi (hanya untuk client)
- * Param: string pesan. Return: integer (1) apabila pesan yang dikirim adalah "exit", (0) apabila bukan
- */
 void *threadworker(void *arg);
 /* Melakukan manajemen thread selama keberjalanan aplikasi
  * Param: argumen.
  * Argumen akan diubah menjadi integer yang merupakan nilai dari suatu socket.
+ */
+ int checkUsername(char *input);
+/* Mengecek apakah username sudah ada di database (file eksternal) atau belum
+ * Param: string username. Return: integer (1) apabila sudah ada, (0) apabila belum ada
  */
 
 /* Program Utama */
