@@ -2,11 +2,13 @@
  * Author: Try Ajitiono / 13512052
  */
 
-#include <stdio.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <netdb.h>
+#include <stdio.h> //input output
+#include <sys/types.h> //data types
+#include <sys/socket.h> //struct definition socket
+#include <netinet/in.h> //const, structs, inet domain addr
+#include <pthread.h> //threading
+#include <stdlib.h> //null value
+#include <netdb.h> //net database
 
 void error(char *msg) {
 	perror(msg);
