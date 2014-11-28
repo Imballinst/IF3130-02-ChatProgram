@@ -30,7 +30,7 @@ int checkExitMsg(char *msg);
 int main(int argc, char *argv[]) {
 	//deklarasi variabel
 	int sockfd, rw; //file deskriptor dan penampung return value read/write
-	char *buffer, *comparison; //buffer pesan dan comparison untuk dimasukkan ke fungsi
+	char *buffer, *comparison, *response; //buffer pesan, comparison, dan server response untuk dimasukkan ke fungsi
 	//deklarasi struktur
 	struct addrinfo flags; //parameter yang digunakan untuk melakukan listen socket
 	struct addrinfo *server_info; //resultset yang diset oleh getaddrinfo()
@@ -42,6 +42,7 @@ int main(int argc, char *argv[]) {
 	//inisialisasi buffer dan comparison
 	buffer = malloc(BUFFER_SIZE);
 	comparison = malloc(BUFFER_SIZE);
+	reponse = malloc(BUFFER_SIZE);
 	//mengosongkan memori flags
 	memset(&flags, 0, sizeof(flags));
 	//mengisi struktur flags
@@ -88,6 +89,7 @@ int main(int argc, char *argv[]) {
 	//dealokasi memori
 	free(buffer);
 	free(comparison);
+	free(response);
 	freeaddrinfo(server_info);
 	//menutup socket setelah exit
 	close(sockfd);

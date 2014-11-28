@@ -42,6 +42,10 @@ void *threadworker(void *arg);
 /* Mengecek apakah username sudah ada di database (file eksternal) atau belum
  * Param: string username. Return: integer (1) apabila sudah ada, (0) apabila belum ada
  */
+ void doActions(char *msg);
+ /* Melakukan aksi berdasarkan pesan yang diterima
+  * Param: string pesan.
+  */
 
 /* Program Utama */
 
@@ -116,9 +120,10 @@ void writeUsername() {
 	FILE *f = fopen("assets/users.txt","a"); //membuka file dengan tipe "append"
 	if (f) { //apabila tidak gagal
 		do {
-			printf("Masukin username: ");
+			printf("name    : ");
 			scanf("%s",user);
 		} while (checkUsername(user) == 1); //apabila username sudah ada, diulang terus
+		printf("password: ");
 		scanf("%s", pass);
 		fprintf(f,"%s\t", user);
 		fprintf(f,"%s\n", pass);
@@ -156,9 +161,11 @@ int checkUsername(char *input) {
 void *threadworker(void *arg) {
 	int sockfd, rw; //file deskriptor dan penampung return value read/write
 	int status; //status client, apabila client menuliskan "exit" berarti keluar
-	char *buffer; //buffer untuk pesan
+	char *buffer, *response; //buffer untuk pesan dan response server
 	sockfd = (int) arg; //mengambil sock file descriptor dari argumen yang dipassing
+	//alokasi memori
 	buffer = malloc(BUFFER_SIZE);
+	response = malloc(BUFFER_SIZE);
 	do {
   		bzero(buffer, BUFFER_SIZE); //mengosongkan memori buffer
 		rw = read(sockfd, buffer, BUFFER_SIZE); //melakukan pembacaan terhadap socket
@@ -185,7 +192,20 @@ void *threadworker(void *arg) {
 		printf("Done! Mutex unlocked again, new counter value: %d\n", counter);
 		} while (rw > 0);
 	close(sockfd); //menutup socket untuk client
+	//dealokasi
+	free(buffer);
+	free(response);
 	//menutup thread
 	printf("TID:0x%x served request, exiting thread\n", pthread_self());
 	pthread_exit(0);
+}
+
+void doActions(char *msg) {
+	if (strcmp(msg,"signup") == 0) { //signup
+		writeUsername();
+	} else if (strcmp(msg,"login") == 0) { //login
+
+	} else if (strcmp(msg,"logout") == 0) { //logout
+
+	}
 }
