@@ -1,87 +1,94 @@
-/* File  : tcpclient.c
- * Author: Try Ajitiono / 13512052
+/* File     : tcpclient.c
+ * Author   : Try Ajitiono
+ * Reference: http://robertoacevedo.net/blog/2012/12/03/socket-server/
+ * 			  ...and many other websites, especially stackoverflow.com
  */
 
-#include <stdio.h> //input output
-#include <sys/types.h> //data types
-#include <sys/socket.h> //struct definition socket
-#include <netinet/in.h> //const, structs, inet domain addr
-#include <pthread.h> //threading
-#include <stdlib.h> //null value
-#include <netdb.h> //net database
+/* Header file */
 
-void error(char *msg);
-int checkExitMsg(char *msg);
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <netdb.h>
+#include <netinet/in.h>
+#include <pthread.h>
+#include <unistd.h>
+
+/* Pre-prosesor */
+
+#define BUFFER_SIZE 256 
+
+/* Header fungsi dan prosedur */
+
+int checkUsername(char *input);
+/* Mengecek apakah username sudah ada di database (file eksternal) atau belum
+ * Param: string username. Return: integer (1) apabila sudah ada, (0) apabila belum ada
+ */
+
+/* Program Utama */
 
 int main(int argc, char *argv[]) {
-	//for reference, look tcpserver.c
-	int sockfd, portno, n;
-	struct sockaddr_in serv_addr;
-	//pointer to hostent structure, defines host computer
-	//on the internet
-	struct hostent *server;
-	//common: start the program with arguments
-	char buffer[256];
-	if (argc < 3) {
-		fprintf(stderr, "Usage %s hostname port", argv[0]);
-		exit(0);
+	//deklarasi variabel
+	int sockfd, rw; //file deskriptor dan penampung return value read/write
+	char *buffer;
+	//deklarasi struktur
+	struct addrinfo flags; //parameter yang digunakan untuk melakukan listen socket
+	struct addrinfo *server_info; //resultset yang diset oleh getaddrinfo()
+	//apabila salah command ketika run
+	if (argc < 3) { //apabila tidak memiliki argumen address server dan port
+		fprintf(stderr, "Usage: ./client <hostname/address> <port>");
+		exit(-1);
 	}
-	//set port number and socket file descriptor
-	portno = atoi(argv[2]);
-	sockfd = socket(AF_INET, SOCK_STREAM, 0);
-	if (sockfd < 0)
-		error("ERROR opening socket");
-	//get hostname address
-	server = gethostbyname(argv[1]);
-	if (server == NULL) {
-		fprintf(stderr, "ERROR, no such host");
-		exit(0);
+	//inisialisasi buffer
+	buffer = malloc(BUFFER_SIZE);
+	//mengosongkan memori flags
+	memset(&flags, 0, sizeof(flags));
+	//mengisi struktur flags
+	flags.ai_family = AF_UNSPEC; //IPv4 atau IPv6
+	flags.ai_socktype = SOCK_STREAM; //TCP, sesuai spek
+	flags.ai_flags = AI_PASSIVE; //set address
+	//mengambil ip address server
+	if (getaddrinfo(argv[1], argv[2], &flags, &server_info) < 0) { //apabila gagal
+		perror("Couldn't find host");
+		exit(-1);
 	}
-	//the same as in tcpserver.c
-	bzero((char *) &serv_addr, sizeof(serv_addr));
-	serv_addr.sin_family = AF_INET;
-	//copy the length bytes from server host address
-	//to s_addr in sin_addr in serv_addr variable
-	bcopy((char *)server->h_addr, (char *)&serv_addr.sin_addr.s_addr, server->h_length);
-	serv_addr.sin_port = htons(portno);
-	//if connection to server fails
-	if (connect (sockfd, &serv_addr, sizeof(serv_addr)) < 0)
-		error("ERROR connecting");
-	printf("Please enter the message: ");
-	//set buffer to zero
-	bzero(buffer,256);
-	//get the message input
-	fgets(buffer, 255, stdin);
-	while (!checkExitMsg(buffer)) {
-		//n returns 1 if success writing into socket file descriptor
-		n = write(sockfd, buffer, strlen(buffer));
-		//if fail
-		if (n < 0)
-			error("ERROR writing to socket");
-		//set buffer to zero
-		bzero(buffer,256);
-		//n returns 1 if success reading from buffer
-		n=  read(sockfd, buffer, 255);
-		if (n < 0)
-			error("ERROR reading from socket");
-		printf("%s", buffer);
-		printf("Please enter the message: ");
-		//set buffer to zero
-		bzero(buffer,256);
-		//get the message input
-		fgets(buffer, 255, stdin);
+	//membuat socket
+	sockfd = socket(server_info->ai_family, server_info->ai_socktype, server_info->ai_protocol);
+	//connect ke socket server
+	if (connect(sockfd, server_info->ai_addr, server_info->ai_addrlen) < 0)	{ //apabila gagal
+		perror("Couldn't conenct...");
+		exit(-1);
 	}
+	//koneksi sukses
+	do {
+		printf("Connection established, please enter a message:\n");
+		//mengosongkan buffer
+		bzero(buffer, BUFFER_SIZE);
+		//mengisi buffer dengan pesan
+		fgets(buffer, BUFFER_SIZE - 1, stdin);
+		//write isi pesan ke dalam buffer lalu dimasukkan ke socket untuk dikirim
+		rw = write(sockfd, buffer, strlen(buffer));
+		if (rw < 0)	{ //apabila gagal
+			perror("Failed to send message");
+			exit(-1);
+		}
+		//mengosongkan buffer lagi
+		bzero(buffer, BUFFER_SIZE);
+		//membaca isi buffer
+		rw = read(sockfd, buffer, BUFFER_SIZE);
+		if (rw < 0) { //apabila gagal
+			perror("Error reading from socket");
+			exit(-1);
+		}
+		printf("The message is: %s\n", buffer);
+	} while (1); //selama bukan "exit"
+	//menutup socket setelah exit
 	close(sockfd);
 	return 0;
 }
 
-void error(char *msg) {
-	perror(msg);
-	exit(0);
-}
-
 int checkExitMsg(char *msg) {
-	int i = 0, ret = 0;
+	int ret = 0; //ret bernilai 1 apabila pesan bernilai "exit"
 	if (msg[0] == 'e') {
 		if (msg[1] == 'x') {
 			if (msg[2] == 'i') {
