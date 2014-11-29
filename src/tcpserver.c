@@ -8,7 +8,6 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include <netdb.h>
 #include <netinet/in.h>
 #include <pthread.h>
@@ -45,9 +44,9 @@ void *threadworker(void *arg);
 /* Mengecek apakah username sudah ada di database (file eksternal) atau belum
  * Param: string username. Return: integer (1) apabila sudah ada, (0) apabila belum ada
  */
- void doActions(char *msg);
+ void doActions(int sockfd, char *msg);
  /* Melakukan aksi berdasarkan pesan yang diterima
-  * Param: string pesan.
+  * Param: integer socket dan string pesan.
   */
 
 /* Program Utama */
@@ -181,7 +180,7 @@ void *threadworker(void *arg) {
 		}
 		printf("New message received: %s", buffer); //apabila ada buffer message yang masuk
 		//melakukan aksi berdasarkan pesan yang diberikan
-
+		doActions(sockfd, buffer);
 		//menuliskan kembali ke client
 		bzero(buffer, BUFFER_SIZE); //mengosongkan memori buffer
 		sprintf(buffer, "Acknowledgement from TID:0x%x", pthread_self()); //menerima ACK
@@ -209,9 +208,18 @@ void *threadworker(void *arg) {
 	pthread_exit(0);
 }
 
-void doActions(char *msg) {
+void doActions(int sockfd, char *msg) {
+	int rw;
+	char *buffer;
+	buffer = malloc(BUFFER_SIZE);
+	bzero(buffer, BUFFER_SIZE);
 	if (strcmp(msg,"signup") == 0) { //signup, status = 1
-		writeUsername();
+		sprintf(buffer, "You really want to signup? (Y/N)\n");
+		rw = write(sockfd, buffer, strlen(buffer));
+		if (rw < 0) {
+			perror("Error di dalam do actions, nulis ke buffer");
+			pthread_exit(0);
+		}
 	} else if (strcmp(msg,"login") == 0) { //login, status = 2
 
 	} else if (strcmp(msg,"logout") == 0) { //logout, status = 3

@@ -8,12 +8,19 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include <netdb.h>
 #include <netinet/in.h>
 #include <pthread.h>
 #include <unistd.h>
 #include "adtfungsiprosedur.h"
+
+/* Header fungsi dan prosedur */
+
+void handleActions(int sockfd, char *prevmsg);
+/* Melakukan handle aksi berdasarkan pesan yang dikirimkan sebelumnya. Contoh: sebelumnya mengirimkan pesan signup, maka akan dilakukan penanganan
+ * untuk signup tersebut.
+ * Param: integer socket dan string pesan sebelumnya.
+ */
 
 /* Program Utama */
 
@@ -75,6 +82,7 @@ int main(int argc, char *argv[]) {
 			exit(-1);
 		}
 		printf("The message is: %s\n", buffer); //menerima pesan ACK
+		handleActions(sockfd, comparison);
 	} while (checkExitMsg(comparison) == 0); //selama bukan "exit"
 	//dealokasi memori
 	free(buffer);
@@ -84,4 +92,23 @@ int main(int argc, char *argv[]) {
 	//menutup socket setelah exit
 	close(sockfd);
 	return 0;
+}
+
+void handleActions(int sockfd, char *prevmsg) {
+	printf("Handle actions! Prev msg: %s", prevmsg);
+	int rw;
+	char *nama, *password;
+	if (strcmp("signup\n",prevmsg) == 0) {
+		nama = malloc(BUFFER_SIZE);
+		password = malloc(BUFFER_SIZE);
+		bzero(nama, BUFFER_SIZE);
+		bzero(password, BUFFER_SIZE);
+		printf("Nama:");
+		fgets(nama, BUFFER_SIZE-1, stdin);
+		rw = write(sockfd, nama, strlen(nama));
+		if (rw < 0) {
+			perror("Write nama ke server error");
+			exit(-1);
+		}
+	}
 }

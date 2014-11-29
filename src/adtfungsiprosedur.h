@@ -5,6 +5,7 @@
 /* Pre-prosesor */
 
  #define BUFFER_SIZE 256 //maksimum buffer message [0..255]
+ #include <string.h>
 
 /* Header fungsi dan prosedur */
 
