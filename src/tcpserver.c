@@ -30,10 +30,11 @@ bool running = true;
 
 /* Header fungsi dan prosedur */
 
-void writeUsername();
+void writeUsername(char *user, char *pass);
 /* Menuliskan username dan password ke dalam file eksternal.
  * User diminta memasukkan username yang belum ada di file eksternal, apabila sudah ada, akan diminta pengulangan.
  * Setelah melewati proses validasi username, pengguna akan diminta untuk menginput password, lalu akan masuk ke file eksternal.
+ * Param: string username, string password.
  */
 void *threadworker(void *arg);
 /* Melakukan manajemen thread selama keberjalanan aplikasi
@@ -118,16 +119,10 @@ int main(int argc, char *argv[]) {
 	return 0;
 }
 
-void writeUsername() {
-	char user[255], pass[255]; //digunakan untuk login
+void writeUsername(char *user, char *pass) {
 	FILE *f = fopen("assets/users.txt","a"); //membuka file dengan tipe "append"
 	if (f) { //apabila tidak gagal
-		do {
-			printf("name    : ");
-			scanf("%s",user);
-		} while (checkUsername(user) == 1); //apabila username sudah ada, diulang terus
-		printf("password: ");
-		scanf("%s", pass);
+		printf("success opening file\n");
 		fprintf(f,"%s\t", user);
 		fprintf(f,"%s\n", pass);
 		fclose(f);
@@ -179,8 +174,6 @@ void *threadworker(void *arg) {
 		    pthread_exit(0);
 		}
 		printf("New message received: %s", buffer); //apabila ada buffer message yang masuk
-		//melakukan aksi berdasarkan pesan yang diberikan
-		doActions(sockfd, buffer);
 		//menuliskan kembali ke client
 		bzero(buffer, BUFFER_SIZE); //mengosongkan memori buffer
 		sprintf(buffer, "Acknowledgement from TID:0x%x", pthread_self()); //menerima ACK
@@ -189,15 +182,15 @@ void *threadworker(void *arg) {
 		    perror("Error writing to socket, exiting thread");
 		    pthread_exit(0);
 		}
-		/* Critical section */
+		//melakukan aksi berdasarkan pesan yang diberikan
+		doActions(sockfd, response);
+		//critical section
 		//melakukan lock mutex
-		printf("Requesting mutex lock...\n");
 		pthread_mutex_lock (&lock);
-		printf("Current counter value: %d, upping by 1...\n", counter);
+		//menambahkan counter
 		counter++;
 		//melakukan unlock mutex setelah selesai melakukan operasi
 		pthread_mutex_unlock (&lock);
-		printf("Done! Mutex unlocked again, new counter value: %d\n", counter);
 		} while (checkExitMsg(response) == 0);
 	close(sockfd); //menutup socket untuk client
 	//dealokasi
@@ -211,14 +204,42 @@ void *threadworker(void *arg) {
 void doActions(int sockfd, char *msg) {
 	int rw;
 	char *buffer;
-	buffer = malloc(BUFFER_SIZE);
-	bzero(buffer, BUFFER_SIZE);
-	if (strcmp(msg,"signup") == 0) { //signup, status = 1
-		sprintf(buffer, "You really want to signup? (Y/N)\n");
+	if (strcmp(msg,"signup\n") == 0) { //signup, status = 1
+		char *nama, *pass;
+		//alokasi
+		buffer = malloc(BUFFER_SIZE);
+		nama = malloc(BUFFER_SIZE);
+		pass = malloc(BUFFER_SIZE);
+		//mengosongkan buffer
+		bzero(buffer, BUFFER_SIZE);
+		bzero(nama, BUFFER_SIZE);
+		bzero(pass, BUFFER_SIZE);
+		//membaca inputan nama [1]
+		rw = read(sockfd, buffer, BUFFER_SIZE);
+		if (rw < 0) {
+			perror("Error membaca input nama\n");
+			exit(-1);
+		}
+		strcpy(nama,buffer);
+		printf("Nama: %s\n", nama);
+		bzero(buffer, BUFFER_SIZE);
+		//membaca inputan password [2]
+		rw = read(sockfd, buffer, BUFFER_SIZE);
+		if (rw < 0) {
+			perror("Error membaca input password\n");
+			exit(-1);
+		}
+		strcpy(pass,buffer);
+		printf("Pass: %s\n", pass);
+		bzero(buffer, BUFFER_SIZE);
+		//menuliskan ke database
+		writeUsername(nama,pass);
+		//menuliskan ke client [3]
+		sprintf(buffer, "Username berhasil dibuat!\n");
 		rw = write(sockfd, buffer, strlen(buffer));
 		if (rw < 0) {
-			perror("Error di dalam do actions, nulis ke buffer");
-			pthread_exit(0);
+			perror("Gagal menuliskan ACK signup\n");
+			exit(-1);
 		}
 	} else if (strcmp(msg,"login") == 0) { //login, status = 2
 
