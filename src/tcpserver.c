@@ -13,18 +13,21 @@
 #include <netinet/in.h>
 #include <pthread.h>
 #include <unistd.h>
+#include <stdbool.h>
+#include "adtfungsiprosedur.h"
 
 /* Pre-prosesor */
 
 #define NTHREADS 50 //thread maksimum
 #define QUEUE_SIZE 5 //maksimum client yang menunggu
-#define BUFFER_SIZE 256 //maksimum buffer message [0..255]
 
 /* Variabel-variabel global untuk mutex */
 
 pthread_t threadid[NTHREADS]; //pool thread
 pthread_mutex_t lock; //mutex lock
 int counter = 0; //counter untuk banyaknya mutex digunakan
+//untuk status server running
+bool running = true;
 
 /* Header fungsi dan prosedur */
 
@@ -98,7 +101,7 @@ int main(int argc, char *argv[]) {
 	addr_size = sizeof(client);
 	i = 0; //inisiasi iterator
 	//implementasi thread
-	while (1) {
+	while (running) {
 		if (i == NTHREADS) { //apabila thread sudah maksimum, reset ke nilai awal
 		  i = 0;
 		}
@@ -112,6 +115,7 @@ int main(int argc, char *argv[]) {
 		pthread_create(&threadid[i++], &attr, &threadworker, (void *) new_sockfd);
 		sleep(0); //memberikan thread beberapa waktu untuk melakukan proses di CPU
 	}
+	printf("Server closing\n");
 	return 0;
 }
 
@@ -168,12 +172,17 @@ void *threadworker(void *arg) {
 	response = malloc(BUFFER_SIZE);
 	do {
   		bzero(buffer, BUFFER_SIZE); //mengosongkan memori buffer
+  		bzero(response, BUFFER_SIZE); //mengosongkan memori response
 		rw = read(sockfd, buffer, BUFFER_SIZE); //melakukan pembacaan terhadap socket
+		strcpy(response,buffer);
 		if (rw < 0)  { //apabila pembacaan gagal
 		    perror("Error reading form socket, exiting thread");
 		    pthread_exit(0);
 		}
 		printf("New message received: %s", buffer); //apabila ada buffer message yang masuk
+		//melakukan aksi berdasarkan pesan yang diberikan
+
+		//menuliskan kembali ke client
 		bzero(buffer, BUFFER_SIZE); //mengosongkan memori buffer
 		sprintf(buffer, "Acknowledgement from TID:0x%x", pthread_self()); //menerima ACK
 		rw = write(sockfd, buffer, strlen(buffer)); //menuliskan pesan
@@ -190,7 +199,7 @@ void *threadworker(void *arg) {
 		//melakukan unlock mutex setelah selesai melakukan operasi
 		pthread_mutex_unlock (&lock);
 		printf("Done! Mutex unlocked again, new counter value: %d\n", counter);
-		} while (rw > 0);
+		} while (checkExitMsg(response) == 0);
 	close(sockfd); //menutup socket untuk client
 	//dealokasi
 	free(buffer);
@@ -201,11 +210,11 @@ void *threadworker(void *arg) {
 }
 
 void doActions(char *msg) {
-	if (strcmp(msg,"signup") == 0) { //signup
+	if (strcmp(msg,"signup") == 0) { //signup, status = 1
 		writeUsername();
-	} else if (strcmp(msg,"login") == 0) { //login
+	} else if (strcmp(msg,"login") == 0) { //login, status = 2
 
-	} else if (strcmp(msg,"logout") == 0) { //logout
+	} else if (strcmp(msg,"logout") == 0) { //logout, status = 3
 
 	}
 }

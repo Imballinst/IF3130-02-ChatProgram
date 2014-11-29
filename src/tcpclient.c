@@ -13,17 +13,7 @@
 #include <netinet/in.h>
 #include <pthread.h>
 #include <unistd.h>
-
-/* Pre-prosesor */
-
-#define BUFFER_SIZE 256 
-
-/* Header fungsi dan prosedur */
-
-int checkExitMsg(char *msg);
-/* Melakukan cek apakah pesan yang dikirim merupakan pesan keluar dari aplikasi (hanya untuk client)
- * Param: string pesan. Return: integer (1) apabila pesan yang dikirim adalah "exit", (0) apabila bukan
- */
+#include "adtfungsiprosedur.h"
 
 /* Program Utama */
 
@@ -42,7 +32,7 @@ int main(int argc, char *argv[]) {
 	//inisialisasi buffer dan comparison
 	buffer = malloc(BUFFER_SIZE);
 	comparison = malloc(BUFFER_SIZE);
-	reponse = malloc(BUFFER_SIZE);
+	response = malloc(BUFFER_SIZE);
 	//mengosongkan memori flags
 	memset(&flags, 0, sizeof(flags));
 	//mengisi struktur flags
@@ -84,7 +74,7 @@ int main(int argc, char *argv[]) {
 			perror("Error reading from socket");
 			exit(-1);
 		}
-		printf("The message is: %s\n", buffer);
+		printf("The message is: %s\n", buffer); //menerima pesan ACK
 	} while (checkExitMsg(comparison) == 0); //selama bukan "exit"
 	//dealokasi memori
 	free(buffer);
@@ -94,21 +84,4 @@ int main(int argc, char *argv[]) {
 	//menutup socket setelah exit
 	close(sockfd);
 	return 0;
-}
-
-int checkExitMsg(char *msg) {
-	int ret = 0; //ret bernilai 1 apabila pesan bernilai "exit"
-	printf("checkExitMsg: %s", msg);
-	if (msg[0] == 'e') {
-		if (msg[1] == 'x') {
-			if (msg[2] == 'i') {
-				if (msg[3] == 't') {
-					if (msg[4] == '\n') {
-						ret = 1;
-					}
-				}
-			}
-		}
-	}
-	return ret;
 }
