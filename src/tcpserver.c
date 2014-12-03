@@ -13,11 +13,12 @@
 
 pthread_t threadid[NTHREADS]; //pool thread
 pthread_mutex_t lock; //mutex lock
-clientList *clients = NULL;
+List L;
 
 /* Program Utama */
 
 int main(int argc, char *argv[]) {
+	L.first = NULL;
 	//deklarasi variabel
 	int serv_sockfd, new_sockfd; //socket descriptor lama dan baru untuk server
 	struct addrinfo flags; //parameter yang digunakan untuk melakukan listen socket
@@ -78,8 +79,8 @@ int main(int argc, char *argv[]) {
 			exit(-1);
 		}
 		//membuat thread baru
+		addClientToList(&L,new_sockfd);
 		pthread_create(&threadid[i++], &attr, &threadworker, (void *) new_sockfd);
-		addClientToList(clients,new_sockfd);
 
 		sleep(0); //memberikan thread beberapa waktu untuk melakukan proses di CPU
 	}
@@ -100,13 +101,12 @@ void writeUsername(char *user, char *pass) {
 	}
 }
 
-int checkUsername(char *input) {
+bool checkUsername(char *input) {
 	char output[255]; //jumlah yang mungkin didapat dalam satu line di file .txt
-	int ret = 0, i, stat = 1; //return, iterator, status looping
+	int ret = false, i, stat = 1; //return, iterator, status looping
 	FILE *f = fopen("assets/users.txt","r"); //buka file dalam bentuk "membaca"
 	if (f) { //apabila tidak gagal
-		fgets(output,255,f); //skip first line
-		while (fgets(output,255,f) != NULL && ret == 0) {
+		while (fgets(output,255,f) != NULL && !ret) {
 			i = 0; //membaca dari karakter index ke-0
 			while (input[i] != '\t' && output[i] != '\t' && stat == 1) { //bukan akhir tab username
 				if (input[i] != output[i]) { //kalau tidak sama, langsung keluar
@@ -115,8 +115,46 @@ int checkUsername(char *input) {
 				else { //kalau sama, lanjut
 					i++;
 					if (input[i] == NULL && output[i] == '\t') { //kalau lanjut sampai akhir
-						ret = 1;
+						ret = true;
 						stat = 0;
+					}
+				}
+			}
+			stat = 1; //pengisian ulang stat dengan 1 agar dapat masuk ke loop
+		}
+		fclose(f);
+	}
+	return ret;
+}
+
+bool authenticate(char *user, char *pass) {
+	char output[255]; //jumlah yang mungkin didapat dalam satu line di file .txt
+	int ret = false, i, stat = 1, j = 0; //return, iterator, status looping, dan index password
+	FILE *f = fopen("assets/users.txt","r"); //buka file dalam bentuk "membaca"
+	if (f) { //apabila tidak gagal
+		while (fgets(output,255,f) != NULL && !ret) {
+			i = 0; //membaca dari karakter index ke-0
+			while (user[i] != '\t' && output[i] != '\t' && stat == 1) { //bukan akhir tab username
+				if (user[i] != output[i]) { //kalau tidak sama, langsung keluar
+					stat = 0;
+				}
+				else { //kalau sama, lanjut
+					i++; //tambah 1 indeks
+					if (user[i] == NULL && output[i] == '\t') { //kalau lanjut sampai akhir
+						j = 0;
+						i++;
+						//cek password, kini i sudah berada di index password, melewati \t
+						while (pass[j] != NULL && output[i] != '\n' && stat == 1) { //bukan end of line
+							if (pass[j] != output[i]) { //kalau tidak sama, langsung keluar
+								stat = 0;
+							}
+							else {
+								j++; //tambah 1 indeks
+								if (pass[j] == NULL && output[i] == '\n') { //kalau lanjut sampai akhir
+									ret = true;
+								}
+							}
+						}
 					}
 				}
 			}
@@ -161,6 +199,7 @@ void *threadworker(void *arg) {
 		//melakukan unlock mutex setelah selesai melakukan operasi
 		pthread_mutex_unlock (&lock);
 		} while (checkExitMsg(response) == 0);
+	removeClientFromList(&L,sockfd);
 	close(sockfd); //menutup socket untuk client
 	//dealokasi
 	free(buffer);
@@ -174,53 +213,108 @@ void doActions(int sockfd, char *msg) {
 	int rw;
 	char *buffer;
 	if (strcmp(msg,"signup\n") == 0) { //signup, status = 1
-		char *nama, *pass;
-		//alokasi
-		buffer = malloc(BUFFER_SIZE);
-		nama = malloc(BUFFER_SIZE);
-		pass = malloc(BUFFER_SIZE);
-		//mengosongkan buffer
-		bzero(buffer, BUFFER_SIZE);
-		bzero(nama, BUFFER_SIZE);
-		bzero(pass, BUFFER_SIZE);
-		//membaca inputan nama [1]
-		rw = read(sockfd, buffer, BUFFER_SIZE);
-		if (rw < 0) {
-			perror("Error membaca input nama\n");
-			exit(-1);
-		}
-		strcpy(nama,buffer);
-		printf("Nama: %s", nama);
-		bzero(buffer, BUFFER_SIZE);
-		//membaca inputan password [2]
-		rw = read(sockfd, buffer, BUFFER_SIZE);
-		if (rw < 0) {
-			perror("Error membaca input password\n");
-			exit(-1);
-		}
-		strcpy(pass,buffer);
-		printf("Pass: %s", pass);
-		bzero(buffer, BUFFER_SIZE);
-		//menuliskan ke database
-		writeUsername(nama,pass);
-		//menuliskan ke client [3]
-		sprintf(buffer, "Username berhasil dibuat!\n");
-		rw = write(sockfd, buffer, strlen(buffer));
-		if (rw < 0) {
-			perror("Gagal menuliskan ACK signup\n");
-			exit(-1);
-		}
+		signup(sockfd);
 	} else if (strcmp(msg,"login") == 0) { //login, status = 2
-
+		
 	} else if (strcmp(msg,"logout") == 0) { //logout, status = 3
 
 	}
 }
 
-void addClientToList(clientList* cList, int sock) {
+void addClientToList(List *L, int sock) {
+	clientList *C;
+	C = malloc(sizeof(clientList));
+	C->clientSocket = sock;
+	C->next = NULL;
+	if (isEmpty(L)) {
+		(*L).first = C;
+	}
+	else {
+		clientList *iter = (*L).first;
+		while (iter->next != NULL) {
+			iter = iter->next;
+		}
+		iter->next = C;
+	}
+	printf("A client has been connected to this server with socket ID %d\n", sock);
+}
+
+void removeClientFromList(List *L, int sock) {
+	clientList *iter = (*L).first;
+	clientList *prev = NULL;
+	while (iter != NULL) { //penelusuran ke list
+		if (iter->clientSocket == sock) {
+			if (iter == (*L).first) { //apabila di head
+				(*L).first = iter->next;
+			}
+			else { //bukan di head
+				prev->next = iter->next;
+			}
+			iter = NULL;
+			free(iter);
+		}
+		else {
+			prev = iter;
+			iter = iter->next;
+		}
+	}
+	clientList *iter2 = (*L).first;
+	printf("Client with socket number %d has been disconnected.\n", sock);
+	printf("Remaining clients (with socket IDs): ");
+	while (iter2 != NULL) {
+		printf("%d ",iter2->clientSocket);
+		iter2 = iter2->next;
+	}
+	printf("\n");
+}
+
+bool isEmpty(List *L) {
+	return ((*L).first == NULL);
+}
+
+void signup(int sockfd) {
+	char *nama, *pass;
+	//alokasi
+	buffer = malloc(BUFFER_SIZE);
+	nama = malloc(BUFFER_SIZE);
+	pass = malloc(BUFFER_SIZE);
+	//mengosongkan buffer
+	bzero(buffer, BUFFER_SIZE);
+	bzero(nama, BUFFER_SIZE);
+	bzero(pass, BUFFER_SIZE);
+	//membaca inputan nama [1]
+	rw = read(sockfd, buffer, BUFFER_SIZE);
+	if (rw < 0) {
+		perror("Error membaca input nama\n");
+		exit(-1);
+	}
+	strcpy(nama,buffer);
+	printf("Nama: %s", nama);
+	bzero(buffer, BUFFER_SIZE);
+	//membaca inputan password [2]
+	rw = read(sockfd, buffer, BUFFER_SIZE);
+	if (rw < 0) {
+		perror("Error membaca input password\n");
+		exit(-1);
+	}
+	strcpy(pass,buffer);
+	printf("Pass: %s", pass);
+	bzero(buffer, BUFFER_SIZE);
+	//menuliskan ke database
+	writeUsername(nama,pass);
+	//menuliskan ke client [3]
+	sprintf(buffer, "Username berhasil dibuat!\n");
+	rw = write(sockfd, buffer, strlen(buffer));
+	if (rw < 0) {
+		perror("Gagal menuliskan ACK signup\n");
+		exit(-1);
+	}
+}
+
+void login(List *L, char *user, char *pass) {
 
 }
 
-void removeClientFromList(clientList* cList, int sock) {
+void logout(List *L, char *user) {
 
 }
