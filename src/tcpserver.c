@@ -376,14 +376,16 @@ void logout(List *L, int sockfd) {
 	bool found = false;
 	while (iter != NULL && !found) {
 		if (iter->clientSocket == sockfd) {
-			found = true;
 			strcpy(uname,iter->username);
-			printf("Success logging out %s from client with socket ID %d", uname, sockfd);
+			found = true;
 			bzero(iter->username,25);
 		}
 		else {
 			iter = iter->next;
 		}
+	}
+	if (found) {
+		printf("User %s logged out successfully from client with socket ID %d\n", uname, sockfd);
 	}
 }
 
