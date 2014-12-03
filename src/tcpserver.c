@@ -4,51 +4,16 @@
  * 			  ...and many other websites, especially stackoverflow.com
  */
 
-/* Header file */
+/* Header File */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <netdb.h>
-#include <netinet/in.h>
-#include <pthread.h>
-#include <unistd.h>
-#include <stdbool.h>
 #include "adtfungsiprosedur.h"
+#include "tcpserver.h"
 
-/* Pre-prosesor */
-
-#define NTHREADS 50 //thread maksimum
-#define QUEUE_SIZE 5 //maksimum client yang menunggu
-
-/* Variabel-variabel global untuk mutex */
+/* Variabel-variabel global */
 
 pthread_t threadid[NTHREADS]; //pool thread
 pthread_mutex_t lock; //mutex lock
-int counter = 0; //counter untuk banyaknya mutex digunakan
-//untuk status server running
-bool running = true;
-
-/* Header fungsi dan prosedur */
-
-void writeUsername(char *user, char *pass);
-/* Menuliskan username dan password ke dalam file eksternal.
- * User diminta memasukkan username yang belum ada di file eksternal, apabila sudah ada, akan diminta pengulangan.
- * Setelah melewati proses validasi username, pengguna akan diminta untuk menginput password, lalu akan masuk ke file eksternal.
- * Param: string username, string password.
- */
-void *threadworker(void *arg);
-/* Melakukan manajemen thread selama keberjalanan aplikasi
- * Param: argumen.
- * Argumen akan diubah menjadi integer yang merupakan nilai dari suatu socket.
- */
- int checkUsername(char *input);
-/* Mengecek apakah username sudah ada di database (file eksternal) atau belum
- * Param: string username. Return: integer (1) apabila sudah ada, (0) apabila belum ada
- */
- void doActions(int sockfd, char *msg);
- /* Melakukan aksi berdasarkan pesan yang diterima
-  * Param: integer socket dan string pesan.
-  */
+clientList *clients = NULL;
 
 /* Program Utama */
 
@@ -58,6 +23,7 @@ int main(int argc, char *argv[]) {
 	struct addrinfo flags; //parameter yang digunakan untuk melakukan listen socket
 	struct addrinfo *host_info; //resultset yang diset oleh getaddrinfo()
 	pthread_attr_t attr; //atribut thread
+	bool running = true; //untuk status server running
 	int i; //iterator thread
 	//deklarasi struktur
 	socklen_t addr_size; //ukuran cleint address
@@ -113,6 +79,8 @@ int main(int argc, char *argv[]) {
 		}
 		//membuat thread baru
 		pthread_create(&threadid[i++], &attr, &threadworker, (void *) new_sockfd);
+		addClientToList(clients,new_sockfd);
+
 		sleep(0); //memberikan thread beberapa waktu untuk melakukan proses di CPU
 	}
 	printf("Server closing\n");
@@ -121,6 +89,9 @@ int main(int argc, char *argv[]) {
 
 void writeUsername(char *user, char *pass) {
 	FILE *f = fopen("assets/users.txt","a"); //membuka file dengan tipe "append"
+	//remove newline
+	user = removeNewline(user);
+	pass = removeNewline(pass);
 	if (f) { //apabila tidak gagal
 		printf("success opening file\n");
 		fprintf(f,"%s\t", user);
@@ -187,8 +158,6 @@ void *threadworker(void *arg) {
 		//critical section
 		//melakukan lock mutex
 		pthread_mutex_lock (&lock);
-		//menambahkan counter
-		counter++;
 		//melakukan unlock mutex setelah selesai melakukan operasi
 		pthread_mutex_unlock (&lock);
 		} while (checkExitMsg(response) == 0);
@@ -221,7 +190,7 @@ void doActions(int sockfd, char *msg) {
 			exit(-1);
 		}
 		strcpy(nama,buffer);
-		printf("Nama: %s\n", nama);
+		printf("Nama: %s", nama);
 		bzero(buffer, BUFFER_SIZE);
 		//membaca inputan password [2]
 		rw = read(sockfd, buffer, BUFFER_SIZE);
@@ -230,7 +199,7 @@ void doActions(int sockfd, char *msg) {
 			exit(-1);
 		}
 		strcpy(pass,buffer);
-		printf("Pass: %s\n", pass);
+		printf("Pass: %s", pass);
 		bzero(buffer, BUFFER_SIZE);
 		//menuliskan ke database
 		writeUsername(nama,pass);
@@ -246,4 +215,12 @@ void doActions(int sockfd, char *msg) {
 	} else if (strcmp(msg,"logout") == 0) { //logout, status = 3
 
 	}
+}
+
+void addClientToList(clientList* cList, int sock) {
+
+}
+
+void removeClientFromList(clientList* cList, int sock) {
+
 }

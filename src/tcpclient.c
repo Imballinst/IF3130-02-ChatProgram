@@ -6,21 +6,8 @@
 
 /* Header file */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <netdb.h>
-#include <netinet/in.h>
-#include <pthread.h>
-#include <unistd.h>
 #include "adtfungsiprosedur.h"
-
-/* Header fungsi dan prosedur */
-
-void handleActions(int sockfd, char *prevmsg);
-/* Melakukan handle aksi berdasarkan pesan yang dikirimkan sebelumnya. Contoh: sebelumnya mengirimkan pesan signup, maka akan dilakukan penanganan
- * untuk signup tersebut.
- * Param: integer socket dan string pesan sebelumnya.
- */
+#include "tcpclient.h"
 
 /* Program Utama */
 
@@ -59,8 +46,9 @@ int main(int argc, char *argv[]) {
 		exit(-1);
 	}
 	//koneksi sukses
+	printf("Connection established!\n");
 	do {
-		printf("Connection established, please enter a message:\n");
+		printf("Please enter a message: ");
 		//mengosongkan buffer
 		bzero(buffer, BUFFER_SIZE);
 		bzero(comparison, BUFFER_SIZE);
@@ -98,7 +86,7 @@ void handleActions(int sockfd, char *prevmsg) {
 	int rw;
 	char *buffer, *response;
 	response = malloc(BUFFER_SIZE);
-	if (strcmp("signup\n",prevmsg) == 0) {
+	if (strcmp("signup\n",prevmsg) == 0) { //signup
 		buffer = malloc(BUFFER_SIZE);
 		//mengosongkan buffer
 		bzero(buffer, BUFFER_SIZE);
@@ -106,8 +94,6 @@ void handleActions(int sockfd, char *prevmsg) {
 		printf("Nama    :");
 		//insert nama [1]
 		fgets(buffer, BUFFER_SIZE-1, stdin);
-		//remove newline
-		buffer = removeNewline(buffer);
 		rw = write(sockfd, buffer, strlen(buffer));
 		if (rw < 0) {
 			perror("Write nama ke server error");
@@ -118,7 +104,6 @@ void handleActions(int sockfd, char *prevmsg) {
 		printf("Password:");
 		//insert password [2]
 		fgets(buffer, BUFFER_SIZE-1, stdin);
-		buffer = removeNewline(buffer);
 		rw = write(sockfd, buffer, strlen(buffer));
 		if (rw < 0) {
 			perror("Write password ke server error");
@@ -131,5 +116,11 @@ void handleActions(int sockfd, char *prevmsg) {
 			exit(-1);
 		}
 		printf("Reply dari server: %s\n", response);
+	}
+	else if (strcmp("login\n",prevmsg) == 0) { //login
+
+	}
+	else if (strcmp("logout\n",prevmsg) == 0) { //logout
+
 	}
 }
