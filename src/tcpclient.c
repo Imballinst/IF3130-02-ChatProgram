@@ -85,8 +85,8 @@ int main(int argc, char *argv[]) {
 void handleActions(int sockfd, char *prevmsg) {
 	int rw;
 	char *buffer, *response;
-	response = malloc(BUFFER_SIZE);
 	if (strcmp("signup\n",prevmsg) == 0) { //signup
+		response = malloc(BUFFER_SIZE);
 		buffer = malloc(BUFFER_SIZE);
 		//mengosongkan buffer
 		bzero(buffer, BUFFER_SIZE);
@@ -112,15 +112,48 @@ void handleActions(int sockfd, char *prevmsg) {
 		//membaca reply server [3]
 		rw = read(sockfd, response, BUFFER_SIZE);
 		if (rw < 0) {
-			perror("Error membaca input password\n");
+			perror("Error membaca balasan server\n");
 			exit(-1);
 		}
 		printf("Reply dari server: %s\n", response);
+		free(buffer);
+		free(response);
 	}
 	else if (strcmp("login\n",prevmsg) == 0) { //login
-
+		response = malloc(BUFFER_SIZE);
+		buffer = malloc(BUFFER_SIZE);
+		//mengosongkan buffer
+		bzero(buffer, BUFFER_SIZE);
+		bzero(response, BUFFER_SIZE);
+		printf("Nama    :");
+		//insert nama [1]
+		fgets(buffer, BUFFER_SIZE-1, stdin);
+		rw = write(sockfd, buffer, strlen(buffer));
+		if (rw < 0) {
+			perror("Write nama ke server error");
+			exit(-1);
+		}
+		//mengosongkan buffer
+		bzero(buffer, BUFFER_SIZE);
+		printf("Password:");
+		//insert password [2]
+		fgets(buffer, BUFFER_SIZE-1, stdin);
+		rw = write(sockfd, buffer, strlen(buffer));
+		if (rw < 0) {
+			perror("Write password ke server error");
+			exit(-1);
+		}
+		//membaca reply server [3]
+		rw = read(sockfd, response, BUFFER_SIZE);
+		if (rw < 0) {
+			perror("Error membaca balasan server\n");
+			exit(-1);
+		}
+		printf("Reply dari server: %s\n", response);
+		free(buffer);
+		free(response);
 	}
 	else if (strcmp("logout\n",prevmsg) == 0) { //logout
-
+		
 	}
 }

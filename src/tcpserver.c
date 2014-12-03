@@ -129,6 +129,8 @@ bool checkUsername(char *input) {
 
 bool authenticate(char *user, char *pass) {
 	char output[255]; //jumlah yang mungkin didapat dalam satu line di file .txt
+	user = removeNewline(user);
+	pass = removeNewline(pass);
 	int ret = false, i, stat = 1, j = 0; //return, iterator, status looping, dan index password
 	FILE *f = fopen("assets/users.txt","r"); //buka file dalam bentuk "membaca"
 	if (f) { //apabila tidak gagal
@@ -148,8 +150,9 @@ bool authenticate(char *user, char *pass) {
 							if (pass[j] != output[i]) { //kalau tidak sama, langsung keluar
 								stat = 0;
 							}
-							else {
+							else { //kalau sama
 								j++; //tambah 1 indeks
+								i++; //tambah 1 indeks juga
 								if (pass[j] == NULL && output[i] == '\n') { //kalau lanjut sampai akhir
 									ret = true;
 								}
@@ -210,14 +213,12 @@ void *threadworker(void *arg) {
 }
 
 void doActions(int sockfd, char *msg) {
-	int rw;
-	char *buffer;
 	if (strcmp(msg,"signup\n") == 0) { //signup, status = 1
 		signup(sockfd);
-	} else if (strcmp(msg,"login") == 0) { //login, status = 2
-		
-	} else if (strcmp(msg,"logout") == 0) { //logout, status = 3
-
+	} else if (strcmp(msg,"login\n") == 0) { //login, status = 2
+		login(&L,sockfd);
+	} else if (strcmp(msg,"logout\n") == 0) { //logout, status = 3
+		logout(&L,sockfd);
 	}
 }
 
@@ -236,7 +237,14 @@ void addClientToList(List *L, int sock) {
 		}
 		iter->next = C;
 	}
+	clientList *iter2 = (*L).first;
 	printf("A client has been connected to this server with socket ID %d\n", sock);
+	printf("Connected clients (with socket IDs): ");
+	while (iter2 != NULL) {
+		printf("%d ",iter2->clientSocket);
+		iter2 = iter2->next;
+	}
+	printf("\n");
 }
 
 void removeClientFromList(List *L, int sock) {
@@ -273,7 +281,8 @@ bool isEmpty(List *L) {
 }
 
 void signup(int sockfd) {
-	char *nama, *pass;
+	int rw;
+	char *buffer, *nama, *pass;
 	//alokasi
 	buffer = malloc(BUFFER_SIZE);
 	nama = malloc(BUFFER_SIZE);
@@ -309,12 +318,88 @@ void signup(int sockfd) {
 		perror("Gagal menuliskan ACK signup\n");
 		exit(-1);
 	}
+	free(buffer);
+	free(nama);
+	free(pass);
 }
 
-void login(List *L, char *user, char *pass) {
-
+void login(List *L, int sockfd) {
+	int rw;
+	char *buffer, *nama, *pass;
+	//alokasi
+	buffer = malloc(BUFFER_SIZE);
+	nama = malloc(BUFFER_SIZE);
+	pass = malloc(BUFFER_SIZE);
+	//mengosongkan buffer
+	bzero(buffer, BUFFER_SIZE);
+	bzero(nama, BUFFER_SIZE);
+	bzero(pass, BUFFER_SIZE);
+	//membaca inputan nama [1]
+	rw = read(sockfd, buffer, BUFFER_SIZE);
+	if (rw < 0) {
+		perror("Error membaca input nama\n");
+		exit(-1);
+	}
+	strcpy(nama,buffer);
+	printf("Nama: %s", nama);
+	bzero(buffer, BUFFER_SIZE);
+	//membaca inputan password [2]
+	rw = read(sockfd, buffer, BUFFER_SIZE);
+	if (rw < 0) {
+		perror("Error membaca input password\n");
+		exit(-1);
+	}
+	strcpy(pass,buffer);
+	printf("Pass: %s", pass);
+	bzero(buffer, BUFFER_SIZE);
+	//menuliskan ke client [3]
+	if (authenticate(nama,pass)) {
+		sprintf(buffer, "Sukses login!\n");
+		addUsernameToList(L, sockfd, nama);
+	}
+	else {
+		sprintf(buffer, "Gagal login!\n");	
+	}
+	rw = write(sockfd, buffer, strlen(buffer));
+	if (rw < 0) {
+		perror("Gagal menuliskan ACK login\n");
+		exit(-1);
+	}
+	free(buffer);
+	free(nama);
+	free(pass);
 }
 
-void logout(List *L, char *user) {
+void logout(List *L, int sockfd) {
+	clientList *iter = (*L).first;
+	char uname[25];
+	bool found = false;
+	while (iter != NULL && !found) {
+		if (iter->clientSocket == sockfd) {
+			found = true;
+			strcpy(uname,iter->username);
+			printf("Success logging out %s from client with socket ID %d", uname, sockfd);
+			bzero(iter->username,25);
+		}
+		else {
+			iter = iter->next;
+		}
+	}
+}
 
+void addUsernameToList(List *L, int sockfd, char *user) {
+	clientList *iter = (*L).first;
+	bool found = false;
+	printf("First client is: socket ID %d\n", iter->clientSocket);
+	while (iter != NULL && !found) {
+		printf("Socket id: Server %d vs Client %d\n", sockfd, iter->clientSocket);
+		if (iter->clientSocket == sockfd) {
+			found = true;
+			strcpy(iter->username,user);
+			printf("Success adding %s to client with socket ID %d\n", iter->username, sockfd);
+		}
+		else {
+			iter = iter->next;
+		}
+	}
 }

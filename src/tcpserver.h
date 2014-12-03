@@ -59,11 +59,11 @@ void doActions(int sockfd, char *msg);
   * Param: integer socket dan string pesan.
   */
 void addClientToList(List *L, int sock);
-/* Menambahkan socket yang dimiliki client ke dalam list. Digunakan setelah login.
+/* Menambahkan socket yang dimiliki client ke dalam list. Digunakan setelah terkoneksi.
  * Param: integer socket client.
  */
 void removeClientFromList(List *L, int sock);
-/* Menghapus client dari list dengan mencari dari nilai socketnya. Digunakan setelah logout.
+/* Menghapus client dari list dengan mencari dari nilai socketnya. Digunakan setelah diskoneksi.
  * Param: integer socket client.
  */
 bool isEmpty(List *L);
@@ -74,13 +74,17 @@ void signup(int sockfd);
 /* Melakukan signup ke dalam database.
  * Param: integer socket.
  */
-void login(List *L, char *user, char *pass);
+void login(List *L, int sockfd);
 /* Melakukan login ke server dengan username dan password tertentu.
  * Param: List L, string username, string password.
  */
-void logout(List *L, char *user);
+void logout(List *L, int sockfd);
 /* Melakukan logout dari server.
  * Param: List L, string username.
+ */
+void addUsernameToList(List *L, int sockfd, char *user);
+/* Melakukan penambahan string username ke dalam list clients. Digunakan setelah login.
+ * Param: List L, integer socket, string user.
  */
 
 #endif
