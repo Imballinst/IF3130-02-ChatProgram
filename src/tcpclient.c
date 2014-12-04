@@ -157,3 +157,11 @@ void handleActions(int sockfd, char *prevmsg) {
 		
 	}
 }
+
+void addChatLog(char* src_client, char* dest_client, char* msg) {
+	
+}
+
+void createClientLogFolder(char *username) {
+	
+}

@@ -86,5 +86,15 @@ void addUsernameToList(List *L, int sockfd, char *user);
 /* Melakukan penambahan string username ke dalam list clients. Digunakan setelah login.
  * Param: List L, integer socket, string user.
  */
+void addPendingMessage(char* src_client, char* dest_client, char* msg);
+/* Menambahkan pesan yang pending ke dalam direktori assets/server/pending_messages/<dest_client>.txt.
+ * Isi dari file tersebut adalah <src_client> dan <msg>. Digunakan saat client yang dituju sedang offline.
+ * Param: username yang mengirim, username yang dituju, string pesan.
+ */
+void retrievePendingMessage(char *dest_client);
+/* Mengolah pesan yang pending dari direktori assets/server/pending_messages/<dest_client>.txt ke user <dest_client> yang baru saja online.
+ * Digunakan saat client baru saja online, maka server akan mencari text file dengan nama client tersebut.
+ * Param: username yang mengirim, username yang dituju, string pesan.
+ */
 
 #endif

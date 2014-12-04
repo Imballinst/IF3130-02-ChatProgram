@@ -1,5 +1,7 @@
 /* File     : adtfungsiprosedur.h
  * Author   : Try Ajitiono
+ * Note		: ADT ini hanya digunakan HANYA untuk fungsi-fungsi/prosedur-prosedur yang dapat dipakai oleh server ATAU client. Fungsi atau prosedur yang hanya digunakan pada
+ 			  salah satu entitas, silahkan dimasukkan ke file yang bersangkutan.
  */
 
 /* Pre-prosesor */

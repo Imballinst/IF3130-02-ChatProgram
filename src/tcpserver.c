@@ -412,3 +412,11 @@ void addUsernameToList(List *L, int sockfd, char *user) {
 		}
 	}
 }
+
+void addPendingMessage(char* src_client, char* dest_client, char* msg) {
+	
+}
+
+void retrievePendingMessage(char *dest_client) {
+	
+}
