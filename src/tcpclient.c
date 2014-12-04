@@ -86,14 +86,19 @@ void handleActions(int sockfd, char *prevmsg) {
 	int rw;
 	char *buffer, *response;
 	if (strcmp("signup\n",prevmsg) == 0) { //signup
+		char *user;
+		//alokasi
+		user = malloc(BUFFER_SIZE);
 		response = malloc(BUFFER_SIZE);
 		buffer = malloc(BUFFER_SIZE);
 		//mengosongkan buffer
+		bzero(user, BUFFER_SIZE);
 		bzero(buffer, BUFFER_SIZE);
 		bzero(response, BUFFER_SIZE);
 		printf("Nama    :");
 		//insert nama [1]
 		fgets(buffer, BUFFER_SIZE-1, stdin);
+		strcpy(user,buffer);
 		rw = write(sockfd, buffer, strlen(buffer));
 		if (rw < 0) {
 			perror("Write nama ke server error");
@@ -115,9 +120,13 @@ void handleActions(int sockfd, char *prevmsg) {
 			perror("Error membaca balasan server\n");
 			exit(-1);
 		}
+		if (strcmp(response,"Username berhasil dibuat!\n") == 0) { //kalau berhasil
+			createClientLogFolder(user);
+		}
 		printf("Reply dari server: %s\n", response);
 		free(buffer);
 		free(response);
+		free(user);
 	}
 	else if (strcmp("login\n",prevmsg) == 0) { //login
 		response = malloc(BUFFER_SIZE);
@@ -154,7 +163,7 @@ void handleActions(int sockfd, char *prevmsg) {
 		free(response);
 	}
 	else if (strcmp("logout\n",prevmsg) == 0) { //logout
-		
+		//do nothing
 	}
 }
 
@@ -163,5 +172,10 @@ void addChatLog(char* src_client, char* dest_client, char* msg) {
 }
 
 void createClientLogFolder(char *username) {
-	
+	char path[50] = "assets/client/chat_log/"; //path
+	strncat(path,username,strlen(username)); //concat path dengan username
+	if (stat(path,&st) == -1) { //apabila path belum ada, bikin baru
+		mkdir(path,0777);
+		printf("Successfully created folder %s\n", path);
+	}
 }

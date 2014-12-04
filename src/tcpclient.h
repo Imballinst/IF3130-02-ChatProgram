@@ -17,6 +17,10 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
+/* Tipe bentukan dan struktur */
+
+ struct stat st = {0}; //untuk masalah pembuatan direktori
+
 /* Header fungsi dan prosedur */
 
 void handleActions(int sockfd, char *prevmsg);
