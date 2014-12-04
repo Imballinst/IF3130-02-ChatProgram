@@ -136,7 +136,7 @@ bool authenticate(char *user, char *pass) {
 	if (f) { //apabila tidak gagal
 		while (fgets(output,255,f) != NULL && !ret) {
 			i = 0; //membaca dari karakter index ke-0
-			while (user[i] != '\t' && output[i] != '\t' && stat == 1) { //bukan akhir tab username
+			while (user[i] != NULL && output[i] != '\t' && stat == 1) { //bukan akhir tab username
 				if (user[i] != output[i]) { //kalau tidak sama, langsung keluar
 					stat = 0;
 				}
