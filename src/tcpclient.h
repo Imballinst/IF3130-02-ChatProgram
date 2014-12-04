@@ -13,6 +13,7 @@
 #include <netinet/in.h>
 #include <pthread.h>
 #include <unistd.h>
+#include <stdbool.h>
 
 /* Header fungsi dan prosedur */
 

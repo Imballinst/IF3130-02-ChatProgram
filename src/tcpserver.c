@@ -18,13 +18,13 @@ List L;
 /* Program Utama */
 
 int main(int argc, char *argv[]) {
-	L.first = NULL;
 	//deklarasi variabel
+	L.first = NULL;
+	bool running = true; //untuk status server running
 	int serv_sockfd, new_sockfd; //socket descriptor lama dan baru untuk server
 	struct addrinfo flags; //parameter yang digunakan untuk melakukan listen socket
 	struct addrinfo *host_info; //resultset yang diset oleh getaddrinfo()
 	pthread_attr_t attr; //atribut thread
-	bool running = true; //untuk status server running
 	int i; //iterator thread
 	//deklarasi struktur
 	socklen_t addr_size; //ukuran cleint address
@@ -103,12 +103,13 @@ void writeUsername(char *user, char *pass) {
 
 bool checkUsername(char *input) {
 	char output[255]; //jumlah yang mungkin didapat dalam satu line di file .txt
+	input = removeNewline(input);
 	int ret = false, i, stat = 1; //return, iterator, status looping
 	FILE *f = fopen("assets/users.txt","r"); //buka file dalam bentuk "membaca"
 	if (f) { //apabila tidak gagal
 		while (fgets(output,255,f) != NULL && !ret) {
 			i = 0; //membaca dari karakter index ke-0
-			while (input[i] != '\t' && output[i] != '\t' && stat == 1) { //bukan akhir tab username
+			while (input[i] != NULL && output[i] != '\t' && stat == 1) { //bukan akhir tab username
 				if (input[i] != output[i]) { //kalau tidak sama, langsung keluar
 					stat = 0;
 				}
@@ -309,10 +310,16 @@ void signup(int sockfd) {
 	strcpy(pass,buffer);
 	printf("Pass: %s", pass);
 	bzero(buffer, BUFFER_SIZE);
-	//menuliskan ke database
-	writeUsername(nama,pass);
-	//menuliskan ke client [3]
-	sprintf(buffer, "Username berhasil dibuat!\n");
+	if (checkUsername(nama)) { //apabila nama sudah ada, signup gagal
+		//menuliskan error ke client
+		sprintf(buffer, "Username sudah ada di database!\n");
+	}
+	else { //nama belum ada, signup berhasil
+		//menuliskan ke database
+		writeUsername(nama,pass);
+		//menuliskan ke client [3]
+		sprintf(buffer, "Username berhasil dibuat!\n");
+	}
 	rw = write(sockfd, buffer, strlen(buffer));
 	if (rw < 0) {
 		perror("Gagal menuliskan ACK signup\n");
