@@ -14,6 +14,7 @@
 #include <pthread.h>
 #include <unistd.h>
 #include <stdbool.h>
+ #include <time.h>
 
 /* Pre-prosesor */
 
@@ -96,5 +97,15 @@ void retrievePendingMessage(char *dest_client);
  * Digunakan saat client baru saja online, maka server akan mencari text file dengan nama client tersebut.
  * Param: username yang mengirim, username yang dituju, string pesan.
  */
+
+///////
+
+bool isUserExistDB(char *user);
+
+int userSocketInClientList(List *L, char *user);
+
+void sendMessage(List *L, int sockfd, char *message);
+
+bool checkUsername(char *input);
 
 #endif

@@ -12,6 +12,7 @@
  #define BUFFER_SIZE 256 //maksimum buffer message [0..255]
  #include <string.h>
  #include <errno.h>
+ #include <stdbool.h>
 
 /* Header fungsi dan prosedur */
 
@@ -24,5 +25,7 @@ char* removeNewline(char *msg);
 /* Menghilangkan newline dari akhir pesan
  * Param: string pesan. Return: pesan tanpa '\n'.
  */
+
+bool isMessage(char *message);
 
 #endif

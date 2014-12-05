@@ -23,3 +23,18 @@ char* removeNewline(char *msg) {
 		msg[len - 1] = '\0'; //change to NULL char
 	return msg;
 }
+
+bool isMessage(char *message){
+	char msg[] = "message ";
+	bool same = true;
+	int i = 0;
+	while(same && (i <= 7)){
+		if(message[i]==msg[i]){
+			i++;
+		}
+		else{
+			same = false;
+		}
+	}
+	return same;
+}

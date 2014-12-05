@@ -220,6 +220,8 @@ void doActions(int sockfd, char *msg) {
 		login(&L,sockfd);
 	} else if (strcmp(msg,"logout\n") == 0) { //logout, status = 3
 		logout(&L,sockfd);
+	} else if (isMessage(msg)){ //user send message
+		sendMessage(&L,sockfd,msg);
 	}
 }
 
@@ -419,4 +421,123 @@ void addPendingMessage(char* src_client, char* dest_client, char* msg) {
 
 void retrievePendingMessage(char *dest_client) {
 	
+}
+
+//////
+
+bool isUserExistDB(char *user){
+	char output[255]; //jumlah yang mungkin didapat dalam satu line di file .txt
+	user = removeNewline(user);
+	int ret = false, i, stat = 1, j = 0; //return, iterator, status looping, dan index password
+	FILE *f = fopen("assets/users.txt","r"); //buka file dalam bentuk "membaca"
+	if (f) { //apabila tidak gagal
+		while (fgets(output,255,f) != NULL && !ret) {
+			i = 0; //membaca dari karakter index ke-0
+			while (user[i] != NULL && output[i] != '\t' && stat == 1) { //bukan akhir tab username
+				if (user[i] != output[i]) { //kalau tidak sama, langsung keluar
+					stat = 0;
+				}
+				else { //kalau sama, lanjut
+					i++; //tambah 1 indeks
+					if (user[i] == NULL && output[i] == '\t') { //kalau lanjut sampai akhir
+						j = 0;
+						ret = true;
+					}
+				}
+			}
+			stat = 1; //pengisian ulang stat dengan 1 agar dapat masuk ke loop
+		}
+		fclose(f);
+	}
+	return ret;
+}
+
+int userSocketInClientList(List *L, char *user){
+	clientList *iter = (*L).first;
+	int online = -1;
+	while ((iter != NULL) && (online == -1)) {
+		if(strcmp(user,iter->username) == 0){
+			online = iter->clientSocket;
+		}
+		else {
+			iter = iter->next;
+		}
+	}
+	return online;
+}
+
+void sendMessage(List *L, int sockfd, char *message){
+	int rw;
+	int msgLength = strlen(message);
+	int userLength = msgLength - 7;
+	char *user = (char*) malloc(userLength);
+	strncpy(user,message+8,userLength);
+	printf("user yang dikirim message: %s", user);
+	if(isUserExistDB(user)){
+		char *buffer, *isiMessage;
+		//alokasi
+		buffer = malloc(BUFFER_SIZE);
+		isiMessage = malloc(BUFFER_SIZE);
+		//mengosongkan buffer
+		bzero(buffer, BUFFER_SIZE);
+		bzero(isiMessage, BUFFER_SIZE);
+		//membaca inputan isiMessage
+		rw = read(sockfd, buffer, BUFFER_SIZE);
+		if (rw < 0) {
+			perror("Error membaca input isi message\n");
+			exit(-1);
+		}
+		// masukin user sender ke isi messagenya
+		clientList *iter = (*L).first;
+		char sender[25] = "";
+		while ((iter != NULL) && (strlen(sender)==0)){
+			if(sockfd==iter->clientSocket){
+				strcpy(sender,iter->username);
+			}
+			else {
+				iter = iter->next;
+			}
+		}
+		strcat(sender, ": ");
+		// masukin waktu ke isi messagenya
+		time_t rawtime;
+		struct tm *info;
+		char date[80];
+		time( &rawtime );
+		info = localtime( &rawtime );
+		strftime(date,80,"[%x - %I:%M%p] ", info);
+		strcat(date,sender);
+		strcat(date,buffer);
+		strcpy(buffer,date);
+		strcpy(isiMessage,buffer);
+		printf("Message: %s", isiMessage);\
+		//mengirim pesan
+		int sockToWho = userSocketInClientList(L,user);
+		if(sockToWho != -1){ // user nya online
+			// online, kirim isiMessage ke user
+			rw = write(sockToWho, buffer, strlen(buffer));
+			if (rw < 0) {
+				char *buffer;
+				//alokasi
+				buffer = malloc(BUFFER_SIZE);
+				//mengosongkan 
+				bzero(buffer, BUFFER_SIZE);
+				perror("Gagal mengirim pesan\n");
+				exit(-1);
+			}
+			free(buffer);
+			free(isiMessage);
+		}
+		else{
+			//offline, isiMessage simpen di server
+		}
+	}
+	else{
+		char *buffer;
+		//alokasi
+		buffer = malloc(BUFFER_SIZE);
+		//mengosongkan buffer
+		bzero(buffer, BUFFER_SIZE);
+		sprintf(buffer, "Tidak ada user dengan nama tersebut.\n");
+	}
 }

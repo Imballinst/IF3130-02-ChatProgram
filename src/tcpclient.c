@@ -165,6 +165,24 @@ void handleActions(int sockfd, char *prevmsg) {
 	else if (strcmp("logout\n",prevmsg) == 0) { //logout
 		//do nothing
 	}
+	else if(isMessage(prevmsg)){
+		response = malloc(BUFFER_SIZE);
+		buffer = malloc(BUFFER_SIZE);
+		//mengosongkan buffer
+		bzero(buffer, BUFFER_SIZE);
+		bzero(response, BUFFER_SIZE);
+		printf("Message    :");
+		//insert message
+		fgets(buffer, BUFFER_SIZE-1, stdin);
+		rw = write(sockfd, buffer, strlen(buffer));
+		printf("Message sent.\n");
+		if (rw < 0) {
+			perror("Message failed.\n");
+			exit(-1);
+		}
+		free(buffer);
+		free(response);
+	}
 }
 
 void addChatLog(char* src_client, char* dest_client, char* msg) {
