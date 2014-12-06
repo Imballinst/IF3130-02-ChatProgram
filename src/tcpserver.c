@@ -224,7 +224,7 @@ void doActions(int sockfd, char *msg) {
 		sendMessage(&L,sockfd,msg);
 	} else if (isShowMessage(msg)){ //user send message
 		//showMessage(&L,sockfd,msg);
-		printf("hai :D");
+		printf("hai :D\n");
 	}
 }
 
@@ -366,8 +366,20 @@ void login(List *L, int sockfd) {
 	bzero(buffer, BUFFER_SIZE);
 	//menuliskan ke client [3]
 	if (authenticate(nama,pass)) {
+		nama = removeNewline(nama);
 		sprintf(buffer, "Sukses login!\n");
 		addUsernameToList(L, sockfd, nama);
+		char path[100] = "assets/server/pending_messages/";
+		strncat(path,nama,strlen(nama));
+		strncat(path,".txt",4);
+		FILE *FServer = fopen(path,"r");
+		if(FServer){
+			fclose(FServer);
+			retrievePendingMessage(nama,sockfd);
+		}
+		else{
+			fclose(FServer);
+		}
 	}
 	else {
 		sprintf(buffer, "Gagal login!\n");	
@@ -419,11 +431,94 @@ void addUsernameToList(List *L, int sockfd, char *user) {
 }
 
 void addPendingMessage(char* src_client, char* dest_client, char* msg) {
-	
+	// misal <src_client> ngesend chat isiMessage ke <dest_client> yang offline
+	// isiMessage disimpan di assets/server/pending_messages/<dest_client>.txt
+	// isi txtnya: Source: <src_client> \n Message: <msg>
+	char path[100] = "assets/server/pending_messages/";
+	strncat(path,dest_client,strlen(dest_client));
+	strncat(path,".txt",4);
+	FILE *FServer = fopen(path,"a");
+	if(FServer){
+		char source[100] = "Source: ";
+		strncat(source,src_client,strlen(src_client));
+		fputs(source,FServer);
+		char msg_[200] = "\n";
+		strncat(msg_,msg,strlen(msg));
+		fputs(msg_,FServer);
+	}
+	fclose(FServer);
 }
 
-void retrievePendingMessage(char *dest_client) {
-	
+void retrievePendingMessage(char *dest_client, int sockfd) {
+	char path[100] = "assets/server/pending_messages/";
+	strncat(path,dest_client,strlen(dest_client));
+	strncat(path,".txt",4);
+	FILE *FServer = fopen(path,"r");
+	char *src_client;
+	src_client = malloc(25);
+	bzero(src_client,25);
+	int src_clientLength;
+	int sourceLength;
+	if(FServer){
+		char line[256];
+		while (fgets(line, sizeof(line), FServer)){
+			if(strstr(line,"Source: ") != NULL){
+				//ngambil src_client dari Source: <src_client>
+				sourceLength = strlen(line);
+				int src_clientLength = sourceLength - 7;
+				strncpy(src_client,line+8,src_clientLength);
+			}
+			else{
+				src_client = removeNewline(src_client);
+				char pathUser[100] = "assets/client/chat_log/";
+				strncat(pathUser,dest_client,strlen(dest_client));
+				strncat(pathUser,"/",1);
+				strncat(pathUser,src_client,strlen(src_client));
+				strncat(pathUser,".txt",4);
+				FILE *FUser = fopen(pathUser,"a");
+				if(FUser){
+					fputs(line,FUser);
+					strcpy(src_client,"");
+				}
+				fclose(FUser);
+			}
+		}
+	}
+	fclose(FServer);
+	FILE *FServer2 = fopen(path,"w");
+	if(FServer2){
+		fputs("",FServer2);
+	}
+	fclose(FServer2);
+	/*char *buffer;
+	buffer = malloc(BUFFER_SIZE);
+	char newMsg[100] = "New messsage from ";
+	strcat(newMsg,src_client);
+	strcpy(buffer,newMsg);
+	int rw = write(sockfd, buffer, strlen(buffer));
+	if (rw < 0) {
+		char *buffer;
+		//alokasi
+		buffer = malloc(BUFFER_SIZE);
+		//mengosongkan 
+		bzero(buffer, BUFFER_SIZE);
+		perror("Gagal mengirim pesan ke client\n");
+		exit(-1);
+	}
+	free(buffer);*/
+
+	// ngelompokin dulu sourcenya dr assets/server/pending_messages/, masukin ke assets/client/chat_log/
+	// klo udh, jgn lupa diapus
+	// klo udh, jgn lupa ngirim notif ke dest_client klo ada message masuk
+
+	/*
+	char path[100] = "assets/client/chat_log/";
+	strncat(path,user_,strlen(user_));
+	strncat(path,"/",1);
+	strncat(path,showUser,strlen(showUser));
+	strncat(path,".txt",4);
+	FILE *FUser = fopen(path,"r");
+	*/
 }
 
 //////
@@ -512,8 +607,10 @@ void sendMessage(List *L, int sockfd, char *message){
 			free(buffer);
 			free(isiMessage);
 		}
-		else{
-			//offline, isiMessage simpen di server
+		else{ // usernya offline
+			// misal userA ngesend chat isiMessage ke userB yang offline
+			// isiMessage disimpan di assets/server/pending_messages
+			addPendingMessage(sender_,user,isiMessage);
 		}
 	}
 	else{
@@ -552,6 +649,7 @@ void addChatToUserLog(char* src_client, char* dest_client, char* msg) {
 		if(fSrc){
 			printf("success opening file\n");
 			fprintf(fSrc,"%s\n", msg);
+			fprintf(fDest,"%s\n", msg);
 			fclose(fSrc);
 			fclose(fDest);
 		}

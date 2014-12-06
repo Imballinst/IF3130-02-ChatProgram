@@ -202,14 +202,17 @@ void handleActions(int sockfd, char *prevmsg) {
 		}
 		free(buffer);
 		free(response);*/
+		char *user_;
+		user_ = malloc(25);
+		bzero(user_,25);
 		int msgLength = strlen(prevmsg);
 		int showUserLength = msgLength - 4;
 		char *showUser = (char*) malloc(showUserLength);
 		strncpy(showUser,prevmsg+5,showUserLength);
-		printf("%s",user);
-		printf("%s",showUser);
+		strcpy(user_,user);
+		user_ = removeNewline(user_);
+		showUser = removeNewline(showUser);
 		if(isUserExistDB(showUser)){
-			printf("gelo");
 			//char *buffer, *isiMessage;
 			//alokasi
 			//buffer = malloc(1000);
@@ -219,23 +222,21 @@ void handleActions(int sockfd, char *prevmsg) {
 			//bzero(isiMessage, 1000);
 			//mengisi isiMessage dari .txt
 			char path[100] = "assets/client/chat_log/";
-			strncat(path,user,strlen(user));
+			strncat(path,user_,strlen(user_));
 			strncat(path,"/",1);
 			strncat(path,showUser,strlen(showUser));
 			strncat(path,".txt",4);
 			char pathDummy[100] = "assets/client/chat_log/";
-			strncat(pathDummy,user,strlen(user));
+			strncat(pathDummy,user_,strlen(user_));
 			strncat(pathDummy,"/",1);
 			strncat(pathDummy,"dummy.txt",9);
 			FILE *FUser = fopen(path,"r");
 			FILE *FDummy = fopen(pathDummy,"a");
 			if(FUser){
-				printf("hahahhhx");
 				if(FDummy){ // tdak gagal membaca path pathDummy
 					//ngebaca FUser dipindahin ke FDummy
-					printf("hahahhhzz");
 					char line[256];
-
+					printf("\n");
 					while (fgets(line, sizeof(line), FUser)) {
 						if(strcmp(line,"#\n") == 0){
 							//strcat(isiMessage,"----- New Message(s) -----\n");
@@ -248,9 +249,6 @@ void handleActions(int sockfd, char *prevmsg) {
 						}
 					}
 				}
-			}
-			else{
-				printf("hahahhh");
 			}
 			fclose(FUser);
 			fclose(FDummy);
@@ -304,9 +302,6 @@ void handleActions(int sockfd, char *prevmsg) {
 
 		//free(userlogin);
 	}
-}
-
-void addChatLog(char* src_client, char* dest_client, char* msg) {
 }
 
 void createClientLogFolder(char *username) {
