@@ -189,7 +189,7 @@ void *threadworker(void *arg) {
 		printf("New message received: %s", buffer); //apabila ada buffer message yang masuk
 		//menuliskan kembali ke client
 		bzero(buffer, BUFFER_SIZE); //mengosongkan memori buffer
-		sprintf(buffer, "Acknowledgement from TID:0x%x", pthread_self()); //menerima ACK
+		sprintf(buffer, "Acknowledgement from TID:0x%x\n", pthread_self()); //menerima ACK
 		rw = write(sockfd, buffer, strlen(buffer)); //menuliskan pesan
 		if (rw < 0)  { //apabila penulisan gagal
 		    perror("Error writing to socket, exiting thread");
@@ -460,6 +460,7 @@ void retrievePendingMessage(char *dest_client, int sockfd) {
 	bzero(src_client,25);
 	int src_clientLength;
 	int sourceLength;
+	int rw;
 	if(FServer){
 		char line[256];
 		while (fgets(line, sizeof(line), FServer)){
@@ -471,6 +472,8 @@ void retrievePendingMessage(char *dest_client, int sockfd) {
 			}
 			else{
 				src_client = removeNewline(src_client);
+				rw = write
+				//
 				char pathUser[100] = "assets/client/chat_log/";
 				strncat(pathUser,dest_client,strlen(dest_client));
 				strncat(pathUser,"/",1);
@@ -485,6 +488,7 @@ void retrievePendingMessage(char *dest_client, int sockfd) {
 			}
 		}
 	}
+	//menghapus .txt di server karena sudah sampai di log user
 	fclose(FServer);
 	FILE *FServer2 = fopen(path,"w");
 	if(FServer2){
@@ -516,8 +520,20 @@ void sendMessage(List *L, int sockfd, char *message){
 	char *user = (char*) malloc(userLength);
 	strncpy(user,message+8,userLength);
 	printf("user yang dikirim message: %s", user);
+	/* Proses validasi */
 	if(isUserExistDB(user)){
-		char *buffer, *isiMessage;
+		char *buffer;
+		//alokasi
+		buffer = malloc(BUFFER_SIZE);
+		//mengosongkan buffer
+		bzero(buffer, BUFFER_SIZE);
+		sprintf(buffer, "User ada di database\n");
+		rw = write(sockfd,buffer,BUFFER_SIZE);
+		if (rw < 0) {
+			printf("Gagal menulis user ada ke client\n");
+		}
+		/* Setelah proses validasi */
+		char *isiMessage;
 		//alokasi
 		buffer = malloc(BUFFER_SIZE);
 		isiMessage = malloc(BUFFER_SIZE);
@@ -591,7 +607,11 @@ void sendMessage(List *L, int sockfd, char *message){
 		buffer = malloc(BUFFER_SIZE);
 		//mengosongkan buffer
 		bzero(buffer, BUFFER_SIZE);
-		sprintf(buffer, "Tidak ada user dengan nama tersebut.\n");
+		sprintf(buffer, "User tidak ada di database\n");
+		rw = write(sockfd,buffer,BUFFER_SIZE);
+		if (rw < 0) {
+			printf("Gagal menulis user tidak ada ke client\n");
+		}
 	}
 }
 
@@ -630,113 +650,4 @@ void addChatToUserLog(char* src_client, char* dest_client, char* msg) {
 
 void showMessage(List *L, int sockfd, char *message){
 	printf("ada yang melihat message\n");
-	// mengetahui user yang ingin showMessage
-	/* 
-	clientList *iter = (*L).first;
-	char user[25] = "";
-	while ((iter != NULL) && (strlen(user)==0)){
-		if(sockfd==iter->clientSocket){
-			strcpy(user,iter->username);
-		}
-		else {
-			iter = iter->next;
-		}
-	}
-	int rw;
-	int msgLength = strlen(message);
-	int showUserLength = msgLength - 4;
-	char *showUser = (char*) malloc(showUserLength);
-	strncpy(showUser,message+5,showUserLength);
-	printf("user %s ingin melihat message dari %s\n", user,showUser);
-	if(isUserExistDB(showUser)){
-		char *buffer, *isiMessage;
-		//alokasi
-		buffer = malloc(1000);
-		isiMessage = malloc(1000);
-		//mengosongkan buffer
-		bzero(buffer, 1000);
-		bzero(isiMessage, 1000);
-		//mengisi isiMessage dari .txt
-		char path[100] = "assets/client/chat_log/";
-		strncat(path,user,strlen(user));
-		strncat(path,"/",1);
-		strncat(path,showUser,strlen(showUser));
-		strncat(path,".txt",4);
-		char pathDummy[100] = "assets/client/chat_log/";
-		strncat(pathDummy,user,strlen(user));
-		strncat(pathDummy,"/",1);
-		strncat(pathDummy,"dummy.txt",9);
-		FILE *FUser = fopen(path,"r");
-		FILE *FDummy = fopen(pathDummy,"a");
-		if(FUser){
-			if(FDummy){ // tdak gagal membaca path pathDummy
-				//ngebaca FUser dipindahin ke FDummy
-				char line[256];
-
-				while (fgets(line, sizeof(line), FUser)) {
-					if(strcmp(line,"#\n") == 0){
-						strcat(isiMessage,"----- New Message(s) -----\n");
-						printf("----- New Message(s) -----\n");
-				    }
-				    else{
-				    	strncat(isiMessage,line,strlen(line));
-				    	printf("%s",line);
-						fputs(line,FDummy);
-					}
-				}
-			}
-		}
-		fclose(FUser);
-		fclose(FDummy);
-		strcpy(buffer,isiMessage);
-		rw = write(sockfd, buffer, strlen(buffer));
-		if (rw < 0) {
-			char *buffer;
-			//alokasi
-			buffer = malloc(BUFFER_SIZE);
-			//mengosongkan 
-			bzero(buffer, BUFFER_SIZE);
-			perror("Gagal mengirim isi pesan ke client\n");
-			exit(-1);
-		}
-		free(buffer);
-		free(isiMessage);
-		FILE *FUser2 = fopen(path,"w");
-		if(FUser2){
-			fputs("",FUser2);
-		}
-		fclose(FUser2);
-		FILE *FDummy2 = fopen(pathDummy,"r");
-		FILE *FUser3 = fopen(path,"a");
-		if(FUser3){
-			if(FDummy2){ 
-				char line_[256];
-				while (fgets(line_, sizeof(line_), FDummy2)) {
-					fputs(line_,FUser3);
-				}
-			}
-		}
-		fclose(FDummy2);
-		fclose(FUser3);
-		
-		FILE *FDummy3 = fopen(pathDummy,"w");
-		if(FDummy3){
-			fputs("",FDummy3);
-		}
-		fclose(FDummy3);
-		FILE *FUser_ = fopen(path,"a");
-		if(FUser_){
-			fputs("#\n",FUser_);
-		}
-		fclose(FUser_);
-	}
-	else{
-		char *buffer;
-		//alokasi
-		buffer = malloc(BUFFER_SIZE);
-		//mengosongkan buffer
-		bzero(buffer, BUFFER_SIZE);
-		sprintf(buffer, "Tidak ada user dengan nama tersebut.\n");
-	}
-	*/
 }
