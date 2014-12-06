@@ -223,7 +223,8 @@ void doActions(int sockfd, char *msg) {
 	} else if (isMessage(msg)){ //user send message
 		sendMessage(&L,sockfd,msg);
 	} else if (isShowMessage(msg)){ //user send message
-		showMessage(&L,sockfd,msg);
+		//showMessage(&L,sockfd,msg);
+		printf("hai :D");
 	}
 }
 
@@ -560,7 +561,8 @@ void addChatToUserLog(char* src_client, char* dest_client, char* msg) {
 void showMessage(List *L, int sockfd, char *message){
 	printf("ada yang melihat message\n");
 	// mengetahui user yang ingin showMessage
-	/* clientList *iter = (*L).first;
+	/* 
+	clientList *iter = (*L).first;
 	char user[25] = "";
 	while ((iter != NULL) && (strlen(user)==0)){
 		if(sockfd==iter->clientSocket){
@@ -665,5 +667,6 @@ void showMessage(List *L, int sockfd, char *message){
 		//mengosongkan buffer
 		bzero(buffer, BUFFER_SIZE);
 		sprintf(buffer, "Tidak ada user dengan nama tersebut.\n");
-	}*/
+	}
+	*/
 }

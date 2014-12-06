@@ -20,7 +20,7 @@
 /* Tipe bentukan dan struktur */
 
  struct stat st = {0}; //untuk masalah pembuatan direktori
-
+ char user[25];
 /* Header fungsi dan prosedur */
 
 void handleActions(int sockfd, char *prevmsg);

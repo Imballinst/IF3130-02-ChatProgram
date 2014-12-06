@@ -55,7 +55,6 @@ bool isShowMessage(char *message){
 }
 
 bool isUserExistDB(char *user){
-	printf("huft");
 	char output[255]; //jumlah yang mungkin didapat dalam satu line di file .txt
 	user = removeNewline(user);
 	int ret = false, i, stat = 1, j = 0; //return, iterator, status looping, dan index password

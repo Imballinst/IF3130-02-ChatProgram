@@ -85,7 +85,6 @@ int main(int argc, char *argv[]) {
 void handleActions(int sockfd, char *prevmsg) {
 	int rw;
 	char *buffer, *response;
-	char *userlogin;
 	if (strcmp("signup\n",prevmsg) == 0) { //signup
 		char *user;
 		//alokasi
@@ -130,18 +129,18 @@ void handleActions(int sockfd, char *prevmsg) {
 		free(user);
 	}
 	else if (strcmp("login\n",prevmsg) == 0) { //login
+		char *temp;
+		temp = malloc(25);
 		response = malloc(BUFFER_SIZE);
 		buffer = malloc(BUFFER_SIZE);
-		userlogin = malloc(BUFFER_SIZE);
 		//mengosongkan buffer
 		bzero(buffer, BUFFER_SIZE);
 		bzero(response, BUFFER_SIZE);
-		bzero(userlogin, BUFFER_SIZE);
 		printf("Nama    :");
 		//insert nama [1]
 		fgets(buffer, BUFFER_SIZE-1, stdin);
 		rw = write(sockfd, buffer, strlen(buffer));
-		strcpy(userlogin,buffer);
+		strcpy(temp,buffer);
 		if (rw < 0) {
 			perror("Write nama ke server error");
 			exit(-1);
@@ -163,11 +162,16 @@ void handleActions(int sockfd, char *prevmsg) {
 			exit(-1);
 		}
 		printf("Reply dari server: %s\n", response);
+		if(strcmp(response,"Sukses login!\n")==0){
+			strcpy(user,temp);
+		}
 		free(buffer);
 		free(response);
+		free(temp);
 	}
 	else if (strcmp("logout\n",prevmsg) == 0) { //logout
 		//do nothing
+		bzero(user, 25);
 	}
 	else if(isMessage(prevmsg)){
 		response = malloc(BUFFER_SIZE);
@@ -198,11 +202,9 @@ void handleActions(int sockfd, char *prevmsg) {
 		}
 		free(buffer);
 		free(response);*/
-		char user[25] = "";
-		strcpy(user,userlogin);
 		int msgLength = strlen(prevmsg);
 		int showUserLength = msgLength - 4;
-		char *showUser = (char*) malloc(showUserLength);;
+		char *showUser = (char*) malloc(showUserLength);
 		strncpy(showUser,prevmsg+5,showUserLength);
 		printf("%s",user);
 		printf("%s",showUser);
@@ -297,12 +299,7 @@ void handleActions(int sockfd, char *prevmsg) {
 			fclose(FUser_);
 		}
 		else{
-			char *buffer;
-			//alokasi
-			buffer = malloc(BUFFER_SIZE);
-			//mengosongkan buffer
-			bzero(buffer, BUFFER_SIZE);
-			sprintf(buffer, "Tidak ada user dengan nama tersebut.\n");
+			printf("Tidak ada user dengan nama tersebut.\n");
 		}
 
 		//free(userlogin);
