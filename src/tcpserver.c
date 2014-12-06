@@ -424,6 +424,17 @@ void addPendingMessage(char* src_client, char* dest_client, char* msg) {
 	// misal <src_client> ngesend chat isiMessage ke <dest_client> yang offline
 	// isiMessage disimpan di assets/server/pending_messages/<dest_client>.txt
 	// isi txtnya: Source: <src_client> \n Message: <msg>
+	char pathSender[100] = "assets/client/chat_log/";
+	strncat(pathSender,src_client,strlen(src_client));
+	strncat(pathSender,"/",1);
+	strncat(pathSender,dest_client,strlen(dest_client));
+	strncat(pathSender,".txt",4);
+	FILE *FSender = fopen(pathSender,"a");
+	if(FSender){
+		fputs(msg,FSender);
+	}
+	fclose(FSender);
+
 	char path[100] = "assets/server/pending_messages/";
 	strncat(path,dest_client,strlen(dest_client));
 	strncat(path,".txt",4);
@@ -475,11 +486,11 @@ void retrievePendingMessage(char *dest_client, int sockfd) {
 		}
 	}
 	fclose(FServer);
-	/*FILE *FServer2 = fopen(path,"w");
+	FILE *FServer2 = fopen(path,"w");
 	if(FServer2){
 		fputs("",FServer2);
 	}
-	fclose(FServer2);*/
+	fclose(FServer2);
 }
 
 //////
