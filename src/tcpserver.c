@@ -607,7 +607,7 @@ void sendMessage(List *L, int sockfd, char *message){
 			free(buffer);
 			free(isiMessage);
 		}
-		else{ // usernya offline
+		else{ // user offline
 			// misal userA ngesend chat isiMessage ke userB yang offline
 			// isiMessage disimpan di assets/server/pending_messages
 			addPendingMessage(sender_,user,isiMessage);
