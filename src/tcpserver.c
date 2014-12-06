@@ -369,17 +369,7 @@ void login(List *L, int sockfd) {
 		nama = removeNewline(nama);
 		sprintf(buffer, "Sukses login!\n");
 		addUsernameToList(L, sockfd, nama);
-		char path[100] = "assets/server/pending_messages/";
-		strncat(path,nama,strlen(nama));
-		strncat(path,".txt",4);
-		FILE *FServer = fopen(path,"r");
-		if(FServer){
-			fclose(FServer);
-			retrievePendingMessage(nama,sockfd);
-		}
-		else{
-			fclose(FServer);
-		}
+		retrievePendingMessage(nama,sockfd);
 	}
 	else {
 		sprintf(buffer, "Gagal login!\n");	
@@ -453,7 +443,7 @@ void retrievePendingMessage(char *dest_client, int sockfd) {
 	char path[100] = "assets/server/pending_messages/";
 	strncat(path,dest_client,strlen(dest_client));
 	strncat(path,".txt",4);
-	FILE *FServer = fopen(path,"r");
+	FILE *FServer = fopen(path,"r+");
 	char *src_client;
 	src_client = malloc(25);
 	bzero(src_client,25);
@@ -485,40 +475,11 @@ void retrievePendingMessage(char *dest_client, int sockfd) {
 		}
 	}
 	fclose(FServer);
-	FILE *FServer2 = fopen(path,"w");
+	/*FILE *FServer2 = fopen(path,"w");
 	if(FServer2){
 		fputs("",FServer2);
 	}
-	fclose(FServer2);
-	/*char *buffer;
-	buffer = malloc(BUFFER_SIZE);
-	char newMsg[100] = "New messsage from ";
-	strcat(newMsg,src_client);
-	strcpy(buffer,newMsg);
-	int rw = write(sockfd, buffer, strlen(buffer));
-	if (rw < 0) {
-		char *buffer;
-		//alokasi
-		buffer = malloc(BUFFER_SIZE);
-		//mengosongkan 
-		bzero(buffer, BUFFER_SIZE);
-		perror("Gagal mengirim pesan ke client\n");
-		exit(-1);
-	}
-	free(buffer);*/
-
-	// ngelompokin dulu sourcenya dr assets/server/pending_messages/, masukin ke assets/client/chat_log/
-	// klo udh, jgn lupa diapus
-	// klo udh, jgn lupa ngirim notif ke dest_client klo ada message masuk
-
-	/*
-	char path[100] = "assets/client/chat_log/";
-	strncat(path,user_,strlen(user_));
-	strncat(path,"/",1);
-	strncat(path,showUser,strlen(showUser));
-	strncat(path,".txt",4);
-	FILE *FUser = fopen(path,"r");
-	*/
+	fclose(FServer2);*/
 }
 
 //////
@@ -607,7 +568,7 @@ void sendMessage(List *L, int sockfd, char *message){
 			free(buffer);
 			free(isiMessage);
 		}
-		else{ // user offline
+		else{ // usernya offline
 			// misal userA ngesend chat isiMessage ke userB yang offline
 			// isiMessage disimpan di assets/server/pending_messages
 			addPendingMessage(sender_,user,isiMessage);

@@ -305,11 +305,23 @@ void handleActions(int sockfd, char *prevmsg) {
 }
 
 void createClientLogFolder(char *username) {
-	char path[50] = "assets/client/chat_log/"; //path
+	char path[75] = "assets/client/chat_log/"; //path
 	username = removeNewline(username);
 	strncat(path,username,strlen(username)); //concat path dengan username
 	if (stat(path,&st) == -1) { //apabila path belum ada, bikin baru
 		mkdir(path,0777);
-		printf("Successfully created folder %s\n", path);
+		printf("Successfully created client log folder %s\n", path);
 	}
+	bzero(path,75);
+	char path2[50] = "assets/server/pending_messages/";
+	strncat(path2,username,strlen(username));
+	strncat(path2,".txt",4);
+	FILE *f = fopen(path2,"w");
+	if (f) {
+		printf("a\n");
+	}
+	else {
+		printf("b\n");
+	}
+	fclose(f);
 }
