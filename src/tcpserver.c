@@ -222,6 +222,8 @@ void doActions(int sockfd, char *msg) {
 		logout(&L,sockfd);
 	} else if (isMessage(msg)){ //user send message
 		sendMessage(&L,sockfd,msg);
+	} else if (isShowMessage(msg)){ //user send message
+		showMessage(&L,sockfd,msg);
 	}
 }
 
@@ -498,6 +500,8 @@ void sendMessage(List *L, int sockfd, char *message){
 				iter = iter->next;
 			}
 		}
+		char sender_[25] = "";
+		strcpy(sender_,sender);
 		strcat(sender, ": ");
 		// masukin waktu ke isi messagenya
 		time_t rawtime;
@@ -514,7 +518,13 @@ void sendMessage(List *L, int sockfd, char *message){
 		//mengirim pesan
 		int sockToWho = userSocketInClientList(L,user);
 		if(sockToWho != -1){ // user nya online
-			// online, kirim isiMessage ke user
+			// online, kirim isiMessage ke user:
+			// isiMessage ditaruh ke log, terus buffernya diisi sama string "New message from usernya siapa"
+			// naruh isi Message di lognya sender sama user:
+			addChatToUserLog(sender_,user,isiMessage);
+			char newMsg[100] = "New messsage from ";
+			strcat(newMsg,sender_);
+			strcpy(buffer,newMsg);
 			rw = write(sockToWho, buffer, strlen(buffer));
 			if (rw < 0) {
 				char *buffer;
@@ -531,6 +541,153 @@ void sendMessage(List *L, int sockfd, char *message){
 		else{
 			//offline, isiMessage simpen di server
 		}
+	}
+	else{
+		char *buffer;
+		//alokasi
+		buffer = malloc(BUFFER_SIZE);
+		//mengosongkan buffer
+		bzero(buffer, BUFFER_SIZE);
+		sprintf(buffer, "Tidak ada user dengan nama tersebut.\n");
+	}
+}
+
+/* Menambahkan chat yang terjadi antara dua buah client ke dalam assets/client/chat_log/<dest_client>/<src_client>.txt DAN assets/client/chat_log/<src_client>/<dest_client>.txt
+ * Tujuan dibuat dua buah seperti itu agar user source dan destination dapat mengakses chat tersebut, apabila cuma salah satu, user yang satu lagi tidak akan dapat mengakses chat log.
+ * Digunakan saat client A baru selesai menulis ke buffer write DAN client B saat baru selesai menulis ke buffer read.
+ * Param: username yang mengirim, username yang dituju, string pesan.
+ */
+
+void addChatToUserLog(char* src_client, char* dest_client, char* msg) {
+	char pathSrc[100] = "assets/client/chat_log/";
+	strncat(pathSrc,dest_client,strlen(dest_client));
+	strncat(pathSrc,"/",1);
+	strncat(pathSrc,src_client,strlen(src_client));
+	strncat(pathSrc,".txt",4);
+
+	char pathDest[100] = "assets/client/chat_log/";
+	strncat(pathDest,src_client,strlen(src_client));
+	strncat(pathDest,"/",1);
+	strncat(pathDest,dest_client,strlen(dest_client));
+	strncat(pathDest,".txt",4);
+	FILE *fSrc = fopen(pathSrc,"a");
+	FILE *fDest = fopen(pathDest,"a");
+	//remove newline
+	msg = removeNewline(msg);
+	if(fDest){ // apabila tidak gagal
+		if(fSrc){
+			printf("success opening file\n");
+			fprintf(fSrc,"%s\n", msg);
+			fprintf(fDest,"%s\n", msg);
+			fclose(fSrc);
+			fclose(fDest);
+		}
+	}
+}
+
+void showMessage(List *L, int sockfd, char *message){
+	// mengetahui user yang ingin showMessage
+	clientList *iter = (*L).first;
+	char user[25] = "";
+	while ((iter != NULL) && (strlen(user)==0)){
+		if(sockfd==iter->clientSocket){
+			strcpy(user,iter->username);
+		}
+		else {
+			iter = iter->next;
+		}
+	}
+	int rw;
+	int msgLength = strlen(message);
+	int showUserLength = msgLength - 4;
+	char *showUser = (char*) malloc(showUserLength);
+	strncpy(showUser,message+5,showUserLength);
+	printf("user %s ingin melihat message dari %s\n", user,showUser);
+	if(isUserExistDB(showUser)){
+		char *buffer, *isiMessage;
+		//alokasi
+		buffer = malloc(BUFFER_SIZE);
+		isiMessage = malloc(BUFFER_SIZE);
+		//mengosongkan buffer
+		bzero(buffer, BUFFER_SIZE);
+		bzero(isiMessage, BUFFER_SIZE);
+		//mengisi isiMessage dari .txt
+		char path[100] = "assets/client/chat_log/";
+		strncat(path,user,strlen(user));
+		strncat(path,"/",1);
+		strncat(path,showUser,strlen(showUser));
+		strncat(path,".txt",4);
+		char pathDummy[100] = "assets/client/chat_log/";
+		strncat(pathDummy,user,strlen(user));
+		strncat(pathDummy,"/",1);
+		strncat(pathDummy,"dummy.txt",9);
+		FILE *FUser = fopen(path,"r");
+		FILE *FDummy = fopen(pathDummy,"a");
+		if(FUser){
+			if(FDummy){ // tdak gagal membaca path pathDummy
+				//ngebaca FUser dipindahin ke FDummy
+				char line[256];
+
+				while (fgets(line, sizeof(line), FUser)) {
+					/* note that fgets don't strip the terminating \n, checking its
+				       presence would allow to handle lines longer that sizeof(line) */
+					if(strcmp(line,"#\n") == 0){
+						strncat(isiMessage,"===== New Message(s) =====\n",strlen(27));
+						printf("===== New Message(s) =====\n");
+				    }
+				    else{
+				    	strncat(isiMessage,line,strlen(line));
+				    	printf("%s",line);
+						fputs(line,FDummy);
+					}
+				}
+			}
+		}
+		fclose(FUser);
+		fclose(FDummy);
+		strcpy(buffer,isiMessage);
+		rw = write(sockfd, buffer, strlen(buffer));
+		if (rw < 0) {
+			char *buffer;
+			//alokasi
+			buffer = malloc(BUFFER_SIZE);
+			//mengosongkan 
+			bzero(buffer, BUFFER_SIZE);
+			perror("Gagal mengirim isi pesan ke client\n");
+			exit(-1);
+		}
+		free(buffer);
+		free(isiMessage);
+		FILE *FDummy2 = fopen(pathDummy,"r");
+		FILE *FUser2 = fopen(path,"w");
+		if(FUser2){
+			fputs("",FUser2);
+		}
+		fclose(FUser2);
+		FILE *FUser3 = fopen(path,"a");
+		if(FUser3){
+			if(FDummy2){ // tdak gagal membaca path pathDummy
+				//baca FDummy dipindahin ke FUser
+				// terus klo udh kelar end of file: if fgets stringline == null (string dari dummy.txt), fprintf #
+				char line_[256];
+				while (fgets(line_, sizeof(line_), FDummy2)) {
+					fputs(line_,FUser3);
+				}
+			}
+		}
+		fclose(FDummy2);
+		fclose(FUser3);
+		
+		FILE *FDummy3 = fopen(pathDummy,"w");
+		if(FDummy3){
+			fputs("",FDummy3);
+		}
+		fclose(FDummy3);
+		FILE *FUser4 = fopen(path,"a");
+		if(FUser4){
+			fputs("#\n",FUser4);
+		}
+		fclose(FUser4);
 	}
 	else{
 		char *buffer;

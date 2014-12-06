@@ -98,6 +98,12 @@ void retrievePendingMessage(char *dest_client);
  * Param: username yang mengirim, username yang dituju, string pesan.
  */
 
+void addChatToUserLog(char* src_client, char* dest_client, char* msg);
+/* Menambahkan chat yang terjadi antara dua buah client ke dalam assets/client/chat_log/<dest_client>/<src_client>.txt DAN assets/client/chat_log/<src_client>/<dest_client>.txt
+ * Tujuan dibuat dua buah seperti itu agar user source dan destination dapat mengakses chat tersebut, apabila cuma salah satu, user yang satu lagi tidak akan dapat mengakses chat log.
+ * Digunakan saat client A baru selesai menulis ke buffer write DAN client B saat baru selesai menulis ke buffer read.
+ * Param: username yang mengirim, username yang dituju, string pesan.
+ */
 ///////
 
 bool isUserExistDB(char *user);
@@ -107,5 +113,7 @@ int userSocketInClientList(List *L, char *user);
 void sendMessage(List *L, int sockfd, char *message);
 
 bool checkUsername(char *input);
+
+void showMessage(List *L, int sockfd, char *message);
 
 #endif

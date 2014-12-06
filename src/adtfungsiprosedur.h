@@ -28,4 +28,6 @@ char* removeNewline(char *msg);
 
 bool isMessage(char *message);
 
+bool isShowMessage(char *message);
+
 #endif

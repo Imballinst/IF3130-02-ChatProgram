@@ -183,14 +183,29 @@ void handleActions(int sockfd, char *prevmsg) {
 		free(buffer);
 		free(response);
 	}
+	else if(isShowMessage(prevmsg)){
+		response = malloc(BUFFER_SIZE);
+		buffer = malloc(BUFFER_SIZE);
+		//mengosongkan buffer
+		bzero(buffer, BUFFER_SIZE);
+		bzero(response, BUFFER_SIZE);
+		//read show message
+		rw = read(sockfd, buffer, BUFFER_SIZE);
+		if (rw < 0) {
+			perror("Reading message failed.\n");
+			exit(-1);
+		}
+		free(buffer);
+		free(response);
+	}
 }
 
 void addChatLog(char* src_client, char* dest_client, char* msg) {
-	
 }
 
 void createClientLogFolder(char *username) {
 	char path[50] = "assets/client/chat_log/"; //path
+	username = removeNewline(username);
 	strncat(path,username,strlen(username)); //concat path dengan username
 	if (stat(path,&st) == -1) { //apabila path belum ada, bikin baru
 		mkdir(path,0777);

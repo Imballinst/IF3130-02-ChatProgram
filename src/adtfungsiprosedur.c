@@ -38,3 +38,18 @@ bool isMessage(char *message){
 	}
 	return same;
 }
+
+bool isShowMessage(char *message){
+	char msg[] = "show ";
+	bool same = true;
+	int i = 0;
+	while(same && (i <= 4)){
+		if(message[i]==msg[i]){
+			i++;
+		}
+		else{
+			same = false;
+		}
+	}
+	return same;	
+}
