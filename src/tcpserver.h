@@ -106,8 +106,6 @@ void addChatToUserLog(char* src_client, char* dest_client, char* msg);
  */
 ///////
 
-bool isUserExistDB(char *user);
-
 int userSocketInClientList(List *L, char *user);
 
 void sendMessage(List *L, int sockfd, char *message);

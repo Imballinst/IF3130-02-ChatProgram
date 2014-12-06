@@ -13,6 +13,7 @@
  #include <string.h>
  #include <errno.h>
  #include <stdbool.h>
+ #include <stdio.h>
 
 /* Header fungsi dan prosedur */
 
@@ -29,5 +30,7 @@ char* removeNewline(char *msg);
 bool isMessage(char *message);
 
 bool isShowMessage(char *message);
+
+bool isUserExistDB(char *user);
 
 #endif

@@ -53,3 +53,31 @@ bool isShowMessage(char *message){
 	}
 	return same;	
 }
+
+bool isUserExistDB(char *user){
+	printf("huft");
+	char output[255]; //jumlah yang mungkin didapat dalam satu line di file .txt
+	user = removeNewline(user);
+	int ret = false, i, stat = 1, j = 0; //return, iterator, status looping, dan index password
+	FILE *f = fopen("assets/users.txt","r"); //buka file dalam bentuk "membaca"
+	if (f) { //apabila tidak gagal
+		while (fgets(output,255,f) != NULL && !ret) {
+			i = 0; //membaca dari karakter index ke-0
+			while (user[i] != NULL && output[i] != '\t' && stat == 1) { //bukan akhir tab username
+				if (user[i] != output[i]) { //kalau tidak sama, langsung keluar
+					stat = 0;
+				}
+				else { //kalau sama, lanjut
+					i++; //tambah 1 indeks
+					if (user[i] == NULL && output[i] == '\t') { //kalau lanjut sampai akhir
+						j = 0;
+						ret = true;
+					}
+				}
+			}
+			stat = 1; //pengisian ulang stat dengan 1 agar dapat masuk ke loop
+		}
+		fclose(f);
+	}
+	return ret;
+}

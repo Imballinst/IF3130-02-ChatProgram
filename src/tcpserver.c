@@ -427,33 +427,6 @@ void retrievePendingMessage(char *dest_client) {
 
 //////
 
-bool isUserExistDB(char *user){
-	char output[255]; //jumlah yang mungkin didapat dalam satu line di file .txt
-	user = removeNewline(user);
-	int ret = false, i, stat = 1, j = 0; //return, iterator, status looping, dan index password
-	FILE *f = fopen("assets/users.txt","r"); //buka file dalam bentuk "membaca"
-	if (f) { //apabila tidak gagal
-		while (fgets(output,255,f) != NULL && !ret) {
-			i = 0; //membaca dari karakter index ke-0
-			while (user[i] != NULL && output[i] != '\t' && stat == 1) { //bukan akhir tab username
-				if (user[i] != output[i]) { //kalau tidak sama, langsung keluar
-					stat = 0;
-				}
-				else { //kalau sama, lanjut
-					i++; //tambah 1 indeks
-					if (user[i] == NULL && output[i] == '\t') { //kalau lanjut sampai akhir
-						j = 0;
-						ret = true;
-					}
-				}
-			}
-			stat = 1; //pengisian ulang stat dengan 1 agar dapat masuk ke loop
-		}
-		fclose(f);
-	}
-	return ret;
-}
-
 int userSocketInClientList(List *L, char *user){
 	clientList *iter = (*L).first;
 	int online = -1;
@@ -578,7 +551,6 @@ void addChatToUserLog(char* src_client, char* dest_client, char* msg) {
 		if(fSrc){
 			printf("success opening file\n");
 			fprintf(fSrc,"%s\n", msg);
-			fprintf(fDest,"%s\n", msg);
 			fclose(fSrc);
 			fclose(fDest);
 		}
@@ -586,8 +558,9 @@ void addChatToUserLog(char* src_client, char* dest_client, char* msg) {
 }
 
 void showMessage(List *L, int sockfd, char *message){
+	printf("ada yang melihat message\n");
 	// mengetahui user yang ingin showMessage
-	clientList *iter = (*L).first;
+	/* clientList *iter = (*L).first;
 	char user[25] = "";
 	while ((iter != NULL) && (strlen(user)==0)){
 		if(sockfd==iter->clientSocket){
@@ -606,11 +579,11 @@ void showMessage(List *L, int sockfd, char *message){
 	if(isUserExistDB(showUser)){
 		char *buffer, *isiMessage;
 		//alokasi
-		buffer = malloc(BUFFER_SIZE);
-		isiMessage = malloc(BUFFER_SIZE);
+		buffer = malloc(1000);
+		isiMessage = malloc(1000);
 		//mengosongkan buffer
-		bzero(buffer, BUFFER_SIZE);
-		bzero(isiMessage, BUFFER_SIZE);
+		bzero(buffer, 1000);
+		bzero(isiMessage, 1000);
 		//mengisi isiMessage dari .txt
 		char path[100] = "assets/client/chat_log/";
 		strncat(path,user,strlen(user));
@@ -629,11 +602,9 @@ void showMessage(List *L, int sockfd, char *message){
 				char line[256];
 
 				while (fgets(line, sizeof(line), FUser)) {
-					/* note that fgets don't strip the terminating \n, checking its
-				       presence would allow to handle lines longer that sizeof(line) */
 					if(strcmp(line,"#\n") == 0){
-						strncat(isiMessage,"===== New Message(s) =====\n",strlen(27));
-						printf("===== New Message(s) =====\n");
+						strcat(isiMessage,"----- New Message(s) -----\n");
+						printf("----- New Message(s) -----\n");
 				    }
 				    else{
 				    	strncat(isiMessage,line,strlen(line));
@@ -658,17 +629,15 @@ void showMessage(List *L, int sockfd, char *message){
 		}
 		free(buffer);
 		free(isiMessage);
-		FILE *FDummy2 = fopen(pathDummy,"r");
 		FILE *FUser2 = fopen(path,"w");
 		if(FUser2){
 			fputs("",FUser2);
 		}
 		fclose(FUser2);
+		FILE *FDummy2 = fopen(pathDummy,"r");
 		FILE *FUser3 = fopen(path,"a");
 		if(FUser3){
-			if(FDummy2){ // tdak gagal membaca path pathDummy
-				//baca FDummy dipindahin ke FUser
-				// terus klo udh kelar end of file: if fgets stringline == null (string dari dummy.txt), fprintf #
+			if(FDummy2){ 
 				char line_[256];
 				while (fgets(line_, sizeof(line_), FDummy2)) {
 					fputs(line_,FUser3);
@@ -683,11 +652,11 @@ void showMessage(List *L, int sockfd, char *message){
 			fputs("",FDummy3);
 		}
 		fclose(FDummy3);
-		FILE *FUser4 = fopen(path,"a");
-		if(FUser4){
-			fputs("#\n",FUser4);
+		FILE *FUser_ = fopen(path,"a");
+		if(FUser_){
+			fputs("#\n",FUser_);
 		}
-		fclose(FUser4);
+		fclose(FUser_);
 	}
 	else{
 		char *buffer;
@@ -696,5 +665,5 @@ void showMessage(List *L, int sockfd, char *message){
 		//mengosongkan buffer
 		bzero(buffer, BUFFER_SIZE);
 		sprintf(buffer, "Tidak ada user dengan nama tersebut.\n");
-	}
+	}*/
 }

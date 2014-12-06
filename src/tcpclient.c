@@ -85,6 +85,7 @@ int main(int argc, char *argv[]) {
 void handleActions(int sockfd, char *prevmsg) {
 	int rw;
 	char *buffer, *response;
+	char *userlogin;
 	if (strcmp("signup\n",prevmsg) == 0) { //signup
 		char *user;
 		//alokasi
@@ -131,13 +132,16 @@ void handleActions(int sockfd, char *prevmsg) {
 	else if (strcmp("login\n",prevmsg) == 0) { //login
 		response = malloc(BUFFER_SIZE);
 		buffer = malloc(BUFFER_SIZE);
+		userlogin = malloc(BUFFER_SIZE);
 		//mengosongkan buffer
 		bzero(buffer, BUFFER_SIZE);
 		bzero(response, BUFFER_SIZE);
+		bzero(userlogin, BUFFER_SIZE);
 		printf("Nama    :");
 		//insert nama [1]
 		fgets(buffer, BUFFER_SIZE-1, stdin);
 		rw = write(sockfd, buffer, strlen(buffer));
+		strcpy(userlogin,buffer);
 		if (rw < 0) {
 			perror("Write nama ke server error");
 			exit(-1);
@@ -184,19 +188,124 @@ void handleActions(int sockfd, char *prevmsg) {
 		free(response);
 	}
 	else if(isShowMessage(prevmsg)){
-		response = malloc(BUFFER_SIZE);
+		/*response = malloc(BUFFER_SIZE);
 		buffer = malloc(BUFFER_SIZE);
-		//mengosongkan buffer
 		bzero(buffer, BUFFER_SIZE);
 		bzero(response, BUFFER_SIZE);
-		//read show message
-		rw = read(sockfd, buffer, BUFFER_SIZE);
 		if (rw < 0) {
 			perror("Reading message failed.\n");
 			exit(-1);
 		}
 		free(buffer);
-		free(response);
+		free(response);*/
+		char user[25] = "";
+		strcpy(user,userlogin);
+		int msgLength = strlen(prevmsg);
+		int showUserLength = msgLength - 4;
+		char *showUser = (char*) malloc(showUserLength);;
+		strncpy(showUser,prevmsg+5,showUserLength);
+		printf("%s",user);
+		printf("%s",showUser);
+		if(isUserExistDB(showUser)){
+			printf("gelo");
+			//char *buffer, *isiMessage;
+			//alokasi
+			//buffer = malloc(1000);
+			//isiMessage = malloc(1000);
+			//mengosongkan buffer
+			//bzero(buffer, 1000);
+			//bzero(isiMessage, 1000);
+			//mengisi isiMessage dari .txt
+			char path[100] = "assets/client/chat_log/";
+			strncat(path,user,strlen(user));
+			strncat(path,"/",1);
+			strncat(path,showUser,strlen(showUser));
+			strncat(path,".txt",4);
+			char pathDummy[100] = "assets/client/chat_log/";
+			strncat(pathDummy,user,strlen(user));
+			strncat(pathDummy,"/",1);
+			strncat(pathDummy,"dummy.txt",9);
+			FILE *FUser = fopen(path,"r");
+			FILE *FDummy = fopen(pathDummy,"a");
+			if(FUser){
+				printf("hahahhhx");
+				if(FDummy){ // tdak gagal membaca path pathDummy
+					//ngebaca FUser dipindahin ke FDummy
+					printf("hahahhhzz");
+					char line[256];
+
+					while (fgets(line, sizeof(line), FUser)) {
+						if(strcmp(line,"#\n") == 0){
+							//strcat(isiMessage,"----- New Message(s) -----\n");
+							printf("----- New Message(s) -----\n");
+					    }
+					    else{
+					    	//strncat(isiMessage,line,strlen(line));
+					    	printf("%s",line);
+							fputs(line,FDummy);
+						}
+					}
+				}
+			}
+			else{
+				printf("hahahhh");
+			}
+			fclose(FUser);
+			fclose(FDummy);
+			//strcpy(buffer,isiMessage);
+			//rw = write(sockfd, buffer, strlen(buffer));
+			/*
+			if (rw < 0) {
+				char *buffer;
+				//alokasi
+				buffer = malloc(BUFFER_SIZE);
+				//mengosongkan 
+				bzero(buffer, BUFFER_SIZE);
+				perror("Gagal mengirim isi pesan ke client\n");
+				exit(-1);
+			}
+			*/
+			//free(buffer);
+			//free(isiMessage);
+			FILE *FUser2 = fopen(path,"w");
+			if(FUser2){
+				fputs("",FUser2);
+			}
+			fclose(FUser2);
+			FILE *FDummy2 = fopen(pathDummy,"r");
+			FILE *FUser3 = fopen(path,"a");
+			if(FUser3){
+				if(FDummy2){ 
+					char line_[256];
+					while (fgets(line_, sizeof(line_), FDummy2)) {
+						fputs(line_,FUser3);
+					}
+				}
+			}
+			fclose(FDummy2);
+			fclose(FUser3);
+			
+			FILE *FDummy3 = fopen(pathDummy,"w");
+			if(FDummy3){
+				fputs("",FDummy3);
+			}
+			fclose(FDummy3);
+			FILE *FUser_ = fopen(path,"a");
+			if(FUser_){
+				fputs("#\n",FUser_);
+			}
+			fclose(FUser_);
+		}
+		else{
+			char *buffer;
+			//alokasi
+			buffer = malloc(BUFFER_SIZE);
+			//mengosongkan buffer
+			bzero(buffer, BUFFER_SIZE);
+			sprintf(buffer, "Tidak ada user dengan nama tersebut.\n");
+		}
+
+		//free(userlogin);
 	}
 }
 
