@@ -385,8 +385,10 @@ void login(List *L, int sockfd) {
 		FILE *f = fopen(path2,"w");
 		fclose(f);
 		/* Selesai membuat */
-		
-		addServerLog("%s logged in\n",nama);
+		char slog[50] = "";
+		strcpy(slog,nama);
+		strncat(slog," logged in\n",11);
+		addServerLog(slog);
 	}
 	else {
 		sprintf(buffer, "Gagal login!\n");	
@@ -694,8 +696,7 @@ void showMessage(List *L, int sockfd, char *message){
 	printf("ada yang melihat message\n");
 }
 
-void addServerLog(char *log)
-{
+void addServerLog(char *log) {
 	char path2[50] = "assets/server/server_log.txt";
 	FILE *f = fopen(path2,"a");
 	if (f) {
@@ -705,7 +706,7 @@ void addServerLog(char *log)
 		time( &rawtime );
 		info = localtime( &rawtime );
 		strftime(date,80,"[%x - %I:%M%p] ", info);
-		fprintf(f,"%s: %s", info, log);
+		fprintf(f,"%s: %s\n", info, log);
 	}
 	fclose(f);
 }
@@ -719,7 +720,6 @@ void newGroup(char* group) {
 		fprintf(f,"%s\t", group);
 	}
 }
-
 
 bool isUserInGroup(char* group, char* user){
 	char output[255]; //jumlah yang mungkin didapat dalam satu line di file .txt
