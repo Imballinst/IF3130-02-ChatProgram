@@ -33,4 +33,12 @@ bool isShowMessage(char *message);
 
 bool isUserExistDB(char *user);
 
+bool isCreateGroup(char *message);
+
+bool isJoinGroup(char *message);
+
+bool isLeaveGroup(char *message);
+
+bool isUserExistDB(char *user);
+
 #endif

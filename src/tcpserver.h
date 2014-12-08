@@ -14,7 +14,8 @@
 #include <pthread.h>
 #include <unistd.h>
 #include <stdbool.h>
- #include <time.h>
+#include <time.h>
+#include "adtfungsiprosedur.h"
 
 /* Pre-prosesor */
 
@@ -97,21 +98,27 @@ void retrievePendingMessage(char *dest_client, int sockfd);
  * Digunakan saat client baru saja online, maka server akan mencari text file dengan nama client tersebut.
  * Param: username yang mengirim, username yang dituju, string pesan.
  */
-
 void addChatToUserLog(char* src_client, char* dest_client, char* msg);
 /* Menambahkan chat yang terjadi antara dua buah client ke dalam assets/client/chat_log/<dest_client>/<src_client>.txt DAN assets/client/chat_log/<src_client>/<dest_client>.txt
  * Tujuan dibuat dua buah seperti itu agar user source dan destination dapat mengakses chat tersebut, apabila cuma salah satu, user yang satu lagi tidak akan dapat mengakses chat log.
  * Digunakan saat client A baru selesai menulis ke buffer write DAN client B saat baru selesai menulis ke buffer read.
  * Param: username yang mengirim, username yang dituju, string pesan.
  */
-///////
-
 int userSocketInClientList(List *L, char *user);
-
+/* Melakukan cek apakah user sedang ada di dalam List atau tidak
+ * Param: List L dan string username
+ */
 void sendMessage(List *L, int sockfd, char *message);
-
-bool checkUsername(char *input);
-
+/* Mengirimkan pesan ke user yang memiliki socket tertentu yang online maupun offline/
+ * Param: List L, integer socket, string pesan
+ */
 void showMessage(List *L, int sockfd, char *message);
+/* Show message di layar dari orang tertentu
+ * Param: List L, integer socket, string pesan
+ */
+void addServerLog(char *log);
+/* Menambahkan log ke server log, apabila belum ada folder/filenya, buat baru.
+ * Param: string log.
+ */
 
 #endif

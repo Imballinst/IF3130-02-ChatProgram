@@ -6,7 +6,6 @@
 
 /* Header File */
 
-#include "adtfungsiprosedur.h"
 #include "tcpserver.h"
 
 /* Variabel-variabel global */
@@ -18,6 +17,7 @@ List L;
 /* Program Utama */
 
 int main(int argc, char *argv[]) {
+	//addServerLog("Server is running\n");
 	//deklarasi variabel
 	L.first = NULL;
 	bool running = true; //untuk status server running
@@ -85,6 +85,7 @@ int main(int argc, char *argv[]) {
 		sleep(0); //memberikan thread beberapa waktu untuk melakukan proses di CPU
 	}
 	printf("Server closing\n");
+	//addServerLog("Server closed\n");
 	return 0;
 }
 
@@ -99,6 +100,52 @@ void writeUsername(char *user, char *pass) {
 		fprintf(f,"%s\n", pass);
 		fclose(f);
 	}
+}
+
+void *threadworker(void *arg) {
+	int sockfd, rw; //file deskriptor dan penampung return value read/write
+	int status; //status client, apabila client menuliskan "exit" berarti keluar
+	char *buffer, *response; //buffer untuk pesan dan response server
+	sockfd = (int) arg; //mengambil sock file descriptor dari argumen yang dipassing
+	//alokasi memori
+	buffer = malloc(BUFFER_SIZE);
+	response = malloc(BUFFER_SIZE);
+	do {
+  		bzero(buffer, BUFFER_SIZE); //mengosongkan memori buffer
+  		bzero(response, BUFFER_SIZE); //mengosongkan memori response
+  		/* LABEL READ 1 */
+		rw = read(sockfd, buffer, BUFFER_SIZE); //melakukan pembacaan terhadap socket
+		strcpy(response,buffer);
+		if (rw < 0)  { //apabila pembacaan gagal
+		    perror("Error reading form socket, exiting thread");
+		    pthread_exit(0);
+		}
+		printf("New message received: %s", buffer); //apabila ada buffer message yang masuk
+		//menuliskan kembali ke client
+		bzero(buffer, BUFFER_SIZE); //mengosongkan memori buffer
+		sprintf(buffer, "Acknowledgement from TID:0x%x\n", pthread_self()); //menerima ACK
+		/* LABEL WRITE 1 */
+		rw = write(sockfd, buffer, strlen(buffer)); //menuliskan pesan
+		if (rw < 0)  { //apabila penulisan gagal
+		    perror("Error writing to socket, exiting thread");
+		    pthread_exit(0);
+		}
+		//melakukan aksi berdasarkan pesan yang diberikan
+		doActions(sockfd, response);
+		//critical section
+		//melakukan lock mutex
+		pthread_mutex_lock (&lock);
+		//melakukan unlock mutex setelah selesai melakukan operasi
+		pthread_mutex_unlock (&lock);
+		} while (checkExitMsg(response) == 0);
+	removeClientFromList(&L,sockfd);
+	close(sockfd); //menutup socket untuk client
+	//dealokasi
+	free(buffer);
+	free(response);
+	//menutup thread
+	printf("TID:0x%x served request, exiting thread\n", pthread_self());
+	pthread_exit(0);
 }
 
 bool checkUsername(char *input) {
@@ -169,51 +216,8 @@ bool authenticate(char *user, char *pass) {
 	return ret;
 }
 
-void *threadworker(void *arg) {
-	int sockfd, rw; //file deskriptor dan penampung return value read/write
-	int status; //status client, apabila client menuliskan "exit" berarti keluar
-	char *buffer, *response; //buffer untuk pesan dan response server
-	sockfd = (int) arg; //mengambil sock file descriptor dari argumen yang dipassing
-	//alokasi memori
-	buffer = malloc(BUFFER_SIZE);
-	response = malloc(BUFFER_SIZE);
-	do {
-  		bzero(buffer, BUFFER_SIZE); //mengosongkan memori buffer
-  		bzero(response, BUFFER_SIZE); //mengosongkan memori response
-		rw = read(sockfd, buffer, BUFFER_SIZE); //melakukan pembacaan terhadap socket
-		strcpy(response,buffer);
-		if (rw < 0)  { //apabila pembacaan gagal
-		    perror("Error reading form socket, exiting thread");
-		    pthread_exit(0);
-		}
-		printf("New message received: %s", buffer); //apabila ada buffer message yang masuk
-		//menuliskan kembali ke client
-		bzero(buffer, BUFFER_SIZE); //mengosongkan memori buffer
-		sprintf(buffer, "Acknowledgement from TID:0x%x\n", pthread_self()); //menerima ACK
-		rw = write(sockfd, buffer, strlen(buffer)); //menuliskan pesan
-		if (rw < 0)  { //apabila penulisan gagal
-		    perror("Error writing to socket, exiting thread");
-		    pthread_exit(0);
-		}
-		//melakukan aksi berdasarkan pesan yang diberikan
-		doActions(sockfd, response);
-		//critical section
-		//melakukan lock mutex
-		pthread_mutex_lock (&lock);
-		//melakukan unlock mutex setelah selesai melakukan operasi
-		pthread_mutex_unlock (&lock);
-		} while (checkExitMsg(response) == 0);
-	removeClientFromList(&L,sockfd);
-	close(sockfd); //menutup socket untuk client
-	//dealokasi
-	free(buffer);
-	free(response);
-	//menutup thread
-	printf("TID:0x%x served request, exiting thread\n", pthread_self());
-	pthread_exit(0);
-}
-
 void doActions(int sockfd, char *msg) {
+	/* PREKONDISI: READ 1 WRITE 1 */
 	if (strcmp(msg,"signup\n") == 0) { //signup, status = 1
 		signup(sockfd);
 	} else if (strcmp(msg,"login\n") == 0) { //login, status = 2
@@ -222,9 +226,6 @@ void doActions(int sockfd, char *msg) {
 		logout(&L,sockfd);
 	} else if (isMessage(msg)){ //user send message
 		sendMessage(&L,sockfd,msg);
-	} else if (isShowMessage(msg)){ //user send message
-		//showMessage(&L,sockfd,msg);
-		printf("hai :D\n");
 	}
 }
 
@@ -298,6 +299,7 @@ void signup(int sockfd) {
 	bzero(nama, BUFFER_SIZE);
 	bzero(pass, BUFFER_SIZE);
 	//membaca inputan nama [1]
+	/* LABEL READ 2 */
 	rw = read(sockfd, buffer, BUFFER_SIZE);
 	if (rw < 0) {
 		perror("Error membaca input nama\n");
@@ -307,6 +309,7 @@ void signup(int sockfd) {
 	printf("Nama: %s", nama);
 	bzero(buffer, BUFFER_SIZE);
 	//membaca inputan password [2]
+	/* LABEL READ 3 */
 	rw = read(sockfd, buffer, BUFFER_SIZE);
 	if (rw < 0) {
 		perror("Error membaca input password\n");
@@ -325,6 +328,7 @@ void signup(int sockfd) {
 		//menuliskan ke client [3]
 		sprintf(buffer, "Username berhasil dibuat!\n");
 	}
+	/* LABEL WRITE 2 */
 	rw = write(sockfd, buffer, strlen(buffer));
 	if (rw < 0) {
 		perror("Gagal menuliskan ACK signup\n");
@@ -347,6 +351,7 @@ void login(List *L, int sockfd) {
 	bzero(nama, BUFFER_SIZE);
 	bzero(pass, BUFFER_SIZE);
 	//membaca inputan nama [1]
+	/* LABEL READ 2 */
 	rw = read(sockfd, buffer, BUFFER_SIZE);
 	if (rw < 0) {
 		perror("Error membaca input nama\n");
@@ -356,6 +361,7 @@ void login(List *L, int sockfd) {
 	printf("Nama: %s", nama);
 	bzero(buffer, BUFFER_SIZE);
 	//membaca inputan password [2]
+	/* LABEL READ 3 */
 	rw = read(sockfd, buffer, BUFFER_SIZE);
 	if (rw < 0) {
 		perror("Error membaca input password\n");
@@ -368,17 +374,30 @@ void login(List *L, int sockfd) {
 	if (authenticate(nama,pass)) {
 		nama = removeNewline(nama);
 		sprintf(buffer, "Sukses login!\n");
+		/* LABEL WRITE 2 */
+		rw = write(sockfd, buffer, strlen(buffer));
 		addUsernameToList(L, sockfd, nama);
 		retrievePendingMessage(nama,sockfd);
+		/* Buat file pending message */
+		char path2[50] = "assets/server/pending_messages/";
+		strncat(path2,nama,strlen(nama));
+		strncat(path2,".txt",4);
+		FILE *f = fopen(path2,"w");
+		fclose(f);
+		/* Selesai membuat */
+		
+		addServerLog("%s logged in\n",nama);
 	}
 	else {
 		sprintf(buffer, "Gagal login!\n");	
+		/* LABEL WRITE 2 */
+		rw = write(sockfd, buffer, strlen(buffer));
 	}
-	rw = write(sockfd, buffer, strlen(buffer));
 	if (rw < 0) {
 		perror("Gagal menuliskan ACK login\n");
 		exit(-1);
 	}
+	/* Proses menulis message pending dari server ke client */
 	free(buffer);
 	free(nama);
 	free(pass);
@@ -400,6 +419,7 @@ void logout(List *L, int sockfd) {
 	}
 	if (found) {
 		printf("User %s logged out successfully from client with socket ID %d\n", uname, sockfd);
+		addServerLog("%s logged out\n",uname);
 	}
 }
 
@@ -413,6 +433,7 @@ void addUsernameToList(List *L, int sockfd, char *user) {
 			found = true;
 			strcpy(iter->username,user);
 			printf("Success adding %s to client with socket ID %d\n", iter->username, sockfd);
+			addServerLog("%s signed up\n",iter->username);
 		}
 		else {
 			iter = iter->next;
@@ -451,6 +472,7 @@ void addPendingMessage(char* src_client, char* dest_client, char* msg) {
 }
 
 void retrievePendingMessage(char *dest_client, int sockfd) {
+	/* PREKONDISI: WRITE 2 READ 3 */
 	char path[100] = "assets/server/pending_messages/";
 	strncat(path,dest_client,strlen(dest_client));
 	strncat(path,".txt",4);
@@ -460,32 +482,56 @@ void retrievePendingMessage(char *dest_client, int sockfd) {
 	bzero(src_client,25);
 	int src_clientLength;
 	int sourceLength;
+	/* Pengiriman ke client ybs */
 	int rw;
+	char *buffer;
+	buffer = malloc(BUFFER_SIZE);
 	if(FServer){
 		char line[256];
-		while (fgets(line, sizeof(line), FServer)){
-			if(strstr(line,"Source: ") != NULL){
-				//ngambil src_client dari Source: <src_client>
-				sourceLength = strlen(line);
-				int src_clientLength = sourceLength - 7;
-				strncpy(src_client,line+8,src_clientLength);
-			}
-			else{
-				src_client = removeNewline(src_client);
-				rw = write
-				//
-				char pathUser[100] = "assets/client/chat_log/";
-				strncat(pathUser,dest_client,strlen(dest_client));
-				strncat(pathUser,"/",1);
-				strncat(pathUser,src_client,strlen(src_client));
-				strncat(pathUser,".txt",4);
-				FILE *FUser = fopen(pathUser,"a");
-				if(FUser){
-					fputs(line,FUser);
-					strcpy(src_client,"");
+		if (fgets(line, sizeof(line), FServer) != NULL) { //file ada isinya
+			bzero(buffer,BUFFER_SIZE);
+			sprintf(buffer,"Ada isinya");
+			/* LABEL WRITE 3 */
+			rw = write(sockfd, buffer, BUFFER_SIZE);
+			//pointer ke awal file
+			rewind(FServer);
+			while (fgets(line, sizeof(line), FServer)){
+				if(strstr(line,"Source: ") != NULL){
+					//ngambil src_client dari Source: <src_client>
+					sourceLength = strlen(line);
+					int src_clientLength = sourceLength - 7;
+					strncpy(src_client,line+8,src_clientLength);
 				}
-				fclose(FUser);
+				else { //bukan line source, kini string line berisi pesan
+					src_client = removeNewline(src_client);
+					//mengirim src client
+					bzero(buffer,BUFFER_SIZE);
+					sprintf(buffer,src_client);
+					/* LABEL WRITE 4 */
+					rw = write(sockfd, buffer, BUFFER_SIZE);
+					//mengirim dest client
+					bzero(buffer,BUFFER_SIZE);
+					sprintf(buffer,dest_client);
+					/* LABEL WRITE 5 */
+					rw = write(sockfd, buffer, BUFFER_SIZE);
+					//mengirimkan pesan ke client yang dituju
+					bzero(buffer,BUFFER_SIZE);
+					sprintf(buffer,line);
+					/* LABEL WRITE 6 */
+					rw = write(sockfd, buffer, BUFFER_SIZE);
+				}
+				strcpy(src_client,"");
 			}
+			bzero(buffer,BUFFER_SIZE);
+			sprintf(buffer,"Sudah habis");
+			/* LABEL WRITE 7 */
+			rw = write(sockfd, buffer, BUFFER_SIZE);
+		}
+		else { //tidak ada isinya
+			bzero(buffer,BUFFER_SIZE);
+			sprintf(buffer,"Tidak ada isinya");
+			/* LABEL WRITE 3 */
+			rw = write(sockfd, buffer, BUFFER_SIZE);
 		}
 	}
 	//menghapus .txt di server karena sudah sampai di log user
@@ -497,7 +543,32 @@ void retrievePendingMessage(char *dest_client, int sockfd) {
 	fclose(FServer2);
 }
 
-//////
+void addChatToUserLog(char* src_client, char* dest_client, char* msg) {
+	char pathSrc[100] = "assets/client/chat_log/";
+	strncat(pathSrc,dest_client,strlen(dest_client));
+	strncat(pathSrc,"/",1);
+	strncat(pathSrc,src_client,strlen(src_client));
+	strncat(pathSrc,".txt",4);
+
+	char pathDest[100] = "assets/client/chat_log/";
+	strncat(pathDest,src_client,strlen(src_client));
+	strncat(pathDest,"/",1);
+	strncat(pathDest,dest_client,strlen(dest_client));
+	strncat(pathDest,".txt",4);
+	FILE *fSrc = fopen(pathSrc,"a");
+	FILE *fDest = fopen(pathDest,"a");
+	//remove newline
+	msg = removeNewline(msg);
+	if(fDest){ // apabila tidak gagal
+		if(fSrc){
+			printf("success opening file\n");
+			fprintf(fSrc,"%s\n", msg);
+			fprintf(fDest,"%s\n", msg);
+			fclose(fSrc);
+			fclose(fDest);
+		}
+	}
+}
 
 int userSocketInClientList(List *L, char *user){
 	clientList *iter = (*L).first;
@@ -528,6 +599,7 @@ void sendMessage(List *L, int sockfd, char *message){
 		//mengosongkan buffer
 		bzero(buffer, BUFFER_SIZE);
 		sprintf(buffer, "User ada di database\n");
+		/* LABEL WRITE 2 */
 		rw = write(sockfd,buffer,BUFFER_SIZE);
 		if (rw < 0) {
 			printf("Gagal menulis user ada ke client\n");
@@ -541,6 +613,7 @@ void sendMessage(List *L, int sockfd, char *message){
 		bzero(buffer, BUFFER_SIZE);
 		bzero(isiMessage, BUFFER_SIZE);
 		//membaca inputan isiMessage
+		/* LABEL READ 2 */
 		rw = read(sockfd, buffer, BUFFER_SIZE);
 		if (rw < 0) {
 			perror("Error membaca input isi message\n");
@@ -582,6 +655,7 @@ void sendMessage(List *L, int sockfd, char *message){
 			char newMsg[100] = "New messsage from ";
 			strcat(newMsg,sender_);
 			strcpy(buffer,newMsg);
+			/* LABEL WRITE 3 */
 			rw = write(sockToWho, buffer, strlen(buffer));
 			if (rw < 0) {
 				char *buffer;
@@ -608,6 +682,7 @@ void sendMessage(List *L, int sockfd, char *message){
 		//mengosongkan buffer
 		bzero(buffer, BUFFER_SIZE);
 		sprintf(buffer, "User tidak ada di database\n");
+		/* LABEL WRITE 2 */
 		rw = write(sockfd,buffer,BUFFER_SIZE);
 		if (rw < 0) {
 			printf("Gagal menulis user tidak ada ke client\n");
@@ -615,39 +690,75 @@ void sendMessage(List *L, int sockfd, char *message){
 	}
 }
 
-/* Menambahkan chat yang terjadi antara dua buah client ke dalam assets/client/chat_log/<dest_client>/<src_client>.txt DAN assets/client/chat_log/<src_client>/<dest_client>.txt
- * Tujuan dibuat dua buah seperti itu agar user source dan destination dapat mengakses chat tersebut, apabila cuma salah satu, user yang satu lagi tidak akan dapat mengakses chat log.
- * Digunakan saat client A baru selesai menulis ke buffer write DAN client B saat baru selesai menulis ke buffer read.
- * Param: username yang mengirim, username yang dituju, string pesan.
- */
+void showMessage(List *L, int sockfd, char *message){
+	printf("ada yang melihat message\n");
+}
 
-void addChatToUserLog(char* src_client, char* dest_client, char* msg) {
-	char pathSrc[100] = "assets/client/chat_log/";
-	strncat(pathSrc,dest_client,strlen(dest_client));
-	strncat(pathSrc,"/",1);
-	strncat(pathSrc,src_client,strlen(src_client));
-	strncat(pathSrc,".txt",4);
+void addServerLog(char *log)
+{
+	char path2[50] = "assets/server/server_log.txt";
+	FILE *f = fopen(path2,"a");
+	if (f) {
+		time_t rawtime;
+		struct tm *info;
+		char date[80];
+		time( &rawtime );
+		info = localtime( &rawtime );
+		strftime(date,80,"[%x - %I:%M%p] ", info);
+		fprintf(f,"%s: %s", info, log);
+	}
+	fclose(f);
+}
 
-	char pathDest[100] = "assets/client/chat_log/";
-	strncat(pathDest,src_client,strlen(src_client));
-	strncat(pathDest,"/",1);
-	strncat(pathDest,dest_client,strlen(dest_client));
-	strncat(pathDest,".txt",4);
-	FILE *fSrc = fopen(pathSrc,"a");
-	FILE *fDest = fopen(pathDest,"a");
+void newGroup(char* group) {
+	FILE *f = fopen("assets/groups.txt","a"); //membuka file dengan tipe "append"
 	//remove newline
-	msg = removeNewline(msg);
-	if(fDest){ // apabila tidak gagal
-		if(fSrc){
-			printf("success opening file\n");
-			fprintf(fSrc,"%s\n", msg);
-			fprintf(fDest,"%s\n", msg);
-			fclose(fSrc);
-			fclose(fDest);
-		}
+	group = removeNewline(group);
+	if (f) { //apabila tidak gagal
+		printf("success opening file\n");
+		fprintf(f,"%s\t", group);
 	}
 }
 
-void showMessage(List *L, int sockfd, char *message){
-	printf("ada yang melihat message\n");
+
+bool isUserInGroup(char* group, char* user){
+	char output[255]; //jumlah yang mungkin didapat dalam satu line di file .txt
+	user = removeNewline(user);
+	int ret = false, i, stat = 1, j = 0; //return, iterator, status looping, dan index password
+	/*FILE *f = fopen("assets/%s.txt",group,"r"); //buka file dalam bentuk "membaca"
+	char line[256];
+	printf("\n");
+	while (fgets(line, sizeof(line), f) {
+		if(strcmp(line,user) == 0){
+		ret = true;
+		fclose(f);
+	}*/
+	return ret;
+}
+
+void addUserToGroup(char* group, char* user){
+	/*if(!isUserInGroup(group,user)){
+		FILE *f = fopen("assets/%s.txt",group,"a");
+		fprintf("%s\n",user);
+		fclose(f);
+	}*/
+}
+
+void delUser(char* group, char* user){
+	/*if(isUserInGroup(group,user)){
+	   	FILE *source = fopen("/assets/%s.txt",group,"r");
+		FILE *dummy = fopen("assets/dummy.txt"); 
+	   	char line[256];
+		printf("\n");
+		while (fgets(line, sizeof(line), source) {
+			if(!strcmp(line,user) == 0){
+				fputs(line,dummy);
+			}
+		}
+		char line2[256];
+		printf("\n");
+		while (fgets(line2, sizeof(line2), dummy) {
+				fputs(line,source);
+		}
+	}*/
 }

@@ -6,7 +6,6 @@
 
 /* Header file */
 
-#include "adtfungsiprosedur.h"
 #include "tcpclient.h"
 
 /* Program Utama */
@@ -55,7 +54,7 @@ int main(int argc, char *argv[]) {
 		//mengisi buffer dengan pesan
 		fgets(buffer, BUFFER_SIZE - 1, stdin);
 		strcpy(comparison,buffer);
-		//write isi pesan ke dalam buffer lalu dimasukkan ke socket untuk dikirim
+		/* LABEL WRITE 1 */
 		rw = write(sockfd, buffer, strlen(buffer));
 		if (rw < 0)	{ //apabila gagal
 			perror("Failed to send message");
@@ -63,7 +62,7 @@ int main(int argc, char *argv[]) {
 		}
 		//mengosongkan buffer lagi
 		bzero(buffer, BUFFER_SIZE);
-		//membaca isi buffer
+		/* LABEL READ 1 */
 		rw = read(sockfd, buffer, BUFFER_SIZE);
 		if (rw < 0) { //apabila gagal
 			perror("Error reading from socket");
@@ -83,6 +82,7 @@ int main(int argc, char *argv[]) {
 }
 
 void handleActions(int sockfd, char *prevmsg) {
+	/* Initial State: 1x Read dan 1x Write */
 	int rw;
 	char *buffer, *response;
 	if (strcmp("signup\n",prevmsg) == 0) { //signup
@@ -99,6 +99,7 @@ void handleActions(int sockfd, char *prevmsg) {
 		//insert nama [1]
 		fgets(buffer, BUFFER_SIZE-1, stdin);
 		strcpy(user,buffer);
+		/* LABEL WRITE 2 */
 		rw = write(sockfd, buffer, strlen(buffer));
 		if (rw < 0) {
 			perror("Write nama ke server error");
@@ -109,12 +110,14 @@ void handleActions(int sockfd, char *prevmsg) {
 		printf("Password:");
 		//insert password [2]
 		fgets(buffer, BUFFER_SIZE-1, stdin);
+		/* LABEL WRITE 3 */
 		rw = write(sockfd, buffer, strlen(buffer));
 		if (rw < 0) {
 			perror("Write password ke server error");
 			exit(-1);
 		}
 		//membaca reply server [3]
+		/* LABEL READ 2 */
 		rw = read(sockfd, response, BUFFER_SIZE);
 		if (rw < 0) {
 			perror("Error membaca balasan server\n");
@@ -139,6 +142,7 @@ void handleActions(int sockfd, char *prevmsg) {
 		printf("Nama    :");
 		//insert nama [1]
 		fgets(buffer, BUFFER_SIZE-1, stdin);
+		/* LABEL WRITE 2 */
 		rw = write(sockfd, buffer, strlen(buffer));
 		strcpy(temp,buffer);
 		if (rw < 0) {
@@ -150,12 +154,14 @@ void handleActions(int sockfd, char *prevmsg) {
 		printf("Password:");
 		//insert password [2]
 		fgets(buffer, BUFFER_SIZE-1, stdin);
+		/* LABEL WRITE 3 */
 		rw = write(sockfd, buffer, strlen(buffer));
 		if (rw < 0) {
 			perror("Write password ke server error");
 			exit(-1);
 		}
 		//membaca reply server [3]
+		/* LABEL READ 2 */
 		rw = read(sockfd, response, BUFFER_SIZE);
 		if (rw < 0) {
 			perror("Error membaca balasan server\n");
@@ -163,7 +169,57 @@ void handleActions(int sockfd, char *prevmsg) {
 		}
 		printf("Reply dari server: %s\n", response);
 		if(strcmp(response,"Sukses login!\n")==0){
+			char dest_client[25];
+			char src_client[25];
 			strcpy(user,temp);
+			//konfirmasi apakah ada message pending
+			printf("a");
+			bzero(buffer,BUFFER_SIZE);
+			/* LABEL READ 3 */
+			rw = read(sockfd, buffer, BUFFER_SIZE);
+			bzero(buffer,BUFFER_SIZE);
+			rw = read(sockfd, buffer, BUFFER_SIZE);
+			if (strcmp(buffer,"Ada isinya") == 0) {
+				printf("b\n");
+				bool loop = true;
+				do {
+					/* Proses menulis message pending dari server ke client */
+					//mengirim src client
+					bzero(buffer,BUFFER_SIZE);
+					/* LABEL READ 4 */
+					rw = read(sockfd, buffer, BUFFER_SIZE);
+					strcpy(dest_client,buffer);
+					if (strcmp(dest_client,"Sudah habis") != 0) { //pesan yang diterima sudah habis
+						//mengirim dest client
+						bzero(buffer,BUFFER_SIZE);
+						/* LABEL READ 5 */
+						rw = read(sockfd, buffer, BUFFER_SIZE);
+						strcpy(src_client,buffer);
+						//mengirimkan pesan ke client yang dituju
+						bzero(buffer,BUFFER_SIZE);
+						/* LABEL READ 6 */
+						rw = read(sockfd, buffer, BUFFER_SIZE);
+					}
+					else {
+						loop = false;
+					}
+					/* Menulis di file eksternal */
+					char pathUser[100] = "assets/client/chat_log/";
+					strncat(pathUser,dest_client,strlen(dest_client));
+					strncat(pathUser,"/",1);
+					strncat(pathUser,src_client,strlen(src_client));
+					strncat(pathUser,".txt",4);
+					FILE *FUser = fopen(pathUser,"a");
+					if(FUser){
+						fputs(buffer,FUser);
+					}
+					fclose(FUser);
+					printf("Ada pesan baru dari %s\n", src_client);
+				} while (loop);
+			}
+			else { //tidak ada isinya
+				printf("Anda tidak memiliki pesan baru\n");
+			}
 			
 		}
 		free(buffer);
@@ -177,6 +233,7 @@ void handleActions(int sockfd, char *prevmsg) {
 	else if(isMessage(prevmsg)){
 		response = malloc(BUFFER_SIZE);
 		//membaca respon server terkait ada atau tidak di server
+		/* LABEL READ 2 */
 		rw = read(sockfd, response, strlen(response));
 		if (strcmp(response,"User tidak ada di database") == 0) { //tidak ada di database
 			printf("%s\n",response);
@@ -188,6 +245,7 @@ void handleActions(int sockfd, char *prevmsg) {
 			printf("Message    :");
 			//insert message
 			fgets(buffer, BUFFER_SIZE-1, stdin);
+			/* LABEL WRITE 2 */
 			rw = write(sockfd, buffer, strlen(buffer));
 			if (rw < 0) {
 				perror("Message failed.\n");
@@ -276,6 +334,33 @@ void handleActions(int sockfd, char *prevmsg) {
 			printf("Tidak ada user dengan nama tersebut.\n");
 		}
 	}
+	else if(isCreateGroup(prevmsg)){
+		int msgLength = strlen(prevmsg);
+		int groupLength = msgLength - 6;
+		char *group = (char*) malloc(groupLength);
+		strncpy(group,prevmsg+7,groupLength);
+		group = removeNewline(group);
+		newGroup(group);
+		addUserToGroup(group,user);
+		printf("Berhasil membuat group!\n");
+	}
+	else if(isJoinGroup(prevmsg)){
+		int msgLength = strlen(prevmsg);
+		int groupLength = msgLength - 4;
+		char *group = (char*) malloc(groupLength);
+		strncpy(group,prevmsg+5,groupLength);
+		group = removeNewline(group);
+		addUserToGroup(group,user);
+	}
+	else if(isLeaveGroup(prevmsg)){
+		int msgLength = strlen(prevmsg);
+		int groupLength = msgLength - 5;
+		char *group = (char*) malloc(groupLength);
+		strncpy(group,prevmsg+6,groupLength);
+		group = removeNewline(group);
+		delUser(group,user);
+		printf("Berhasil leave dari group!\n");
+	}
 }
 
 void createClientLogFolder(char *username) {
@@ -286,16 +371,83 @@ void createClientLogFolder(char *username) {
 		mkdir(path,0777);
 		printf("Successfully created client log folder %s\n", path);
 	}
-	bzero(path,75);
-	char path2[50] = "assets/server/pending_messages/";
-	strncat(path2,username,strlen(username));
-	strncat(path2,".txt",4);
-	FILE *f = fopen(path2,"w");
-	if (f) {
-		printf("a\n");
-	}
-	else {
-		printf("b\n");
+}
+
+/* GROUP */
+void newGroup(char* group) {
+	char path[100] = "assets/";
+	strncat(path,group,strlen(group));
+	strncat(path,".txt",4);
+	FILE *f = fopen(path,"a"); //membuka file dengan tipe "append"
+	//remove newline
+	group = removeNewline(group);
+	if (f) { //apabila tidak gagal
+		printf("Berhasil membuat group\n");
 	}
 	fclose(f);
+}
+
+
+bool isUserInGroup(char* group, char* user){
+	char output[255]; //jumlah yang mungkin didapat dalam satu line di file .txt
+	user = removeNewline(user);
+	int ret = false, i, stat = 1, j = 0; //return, iterator, status looping, dan index password
+	char path[100] = "assets/";
+	strncat(path,group,strlen(group));
+	strncat(path,".txt",4);
+	FILE *f = fopen(path,"r"); //buka file dalam bentuk "membaca"
+	char line[256];
+	printf("\n");
+	while ((fgets(line, sizeof(line), f)) && !ret) {
+		strcat(user,"\n");
+		if(strcmp(line,user) == 0){
+			ret = true;
+			fclose(f);
+		}
+	}
+	return ret;
+}
+
+void addUserToGroup(char* group, char* user){
+	if(!isUserInGroup(group,user)){
+		char path[100] = "assets/";
+		strncat(path,group,strlen(group));
+		strncat(path,".txt",4);
+		FILE *f = fopen(path,"a");
+			if(f){
+				fprintf(f,"%s\n",user);
+			}
+		fclose(f);
+	}
+	else{
+		printf("User sudah berada di dalam group ini. Tidak ditambahkan\n");
+	}
+}
+
+void delUser(char* group, char* user){
+	if(isUserInGroup(group,user)){
+		char path[100] = "assets/";
+		strncat(path,group,strlen(group));
+		strncat(path,".txt",4);
+	   	FILE *source = fopen(path,"r");
+		FILE *dummy = fopen("assets/dummy.txt","a"); 
+	   	char line[256];
+		while (fgets(line, sizeof(line), source)){
+			strcat(user,"\n");
+			if(!strcmp(line,user) == 0){
+				fputs(line,dummy);
+			}
+		}
+		char line2[256];
+		while (fgets(line2, sizeof(line2), dummy)){
+			fputs(line,source);
+		}
+		fclose(source);
+		fclose(dummy);
+		FILE *dummy2 = fopen("assets/dummy.txt","w");
+		if(dummy2){
+			fputs("",dummy);
+			fclose(dummy2);
+		}		
+	}
 }

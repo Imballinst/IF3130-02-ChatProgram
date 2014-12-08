@@ -16,6 +16,7 @@
 #include <stdbool.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include "adtfungsiprosedur.h"
 
 /* Tipe bentukan dan struktur */
 
