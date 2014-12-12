@@ -68,7 +68,7 @@ int main(int argc, char *argv[]) {
 			perror("Error reading from socket");
 			exit(-1);
 		}
-		printf("The message is: %s\n", buffer); //menerima pesan ACK
+		printf("ACK: %s\n", buffer); //menerima pesan ACK
 		handleActions(sockfd, comparison);
 	} while (checkExitMsg(comparison) == 0); //selama bukan "exit"
 	//dealokasi memori
@@ -167,16 +167,12 @@ void handleActions(int sockfd, char *prevmsg) {
 			perror("Error membaca balasan server\n");
 			exit(-1);
 		}
-		printf("Reply dari server: %s\n", response);
+		printf("Reply dari server: %s", response);
 		if(strcmp(response,"Sukses login!\n")==0){
 			char dest_client[25];
 			char src_client[25];
 			strcpy(user,temp);
-			//konfirmasi apakah ada message pending
-			printf("a");
-			bzero(buffer,BUFFER_SIZE);
-			/* LABEL READ 3 */
-			rw = read(sockfd, buffer, BUFFER_SIZE);
+			/* LABEL READ 3 */ //
 			bzero(buffer,BUFFER_SIZE);
 			rw = read(sockfd, buffer, BUFFER_SIZE);
 			if (strcmp(buffer,"Ada isinya") == 0) {
@@ -220,7 +216,7 @@ void handleActions(int sockfd, char *prevmsg) {
 			else { //tidak ada isinya
 				printf("Anda tidak memiliki pesan baru\n");
 			}
-			
+			printf("Akhir if\n");
 		}
 		free(buffer);
 		free(response);
@@ -228,7 +224,6 @@ void handleActions(int sockfd, char *prevmsg) {
 	}
 	else if (strcmp("logout\n",prevmsg) == 0) { //logout
 		//do nothing
-		bzero(user, 25);
 	}
 	else if(isMessage(prevmsg)){
 		response = malloc(BUFFER_SIZE);

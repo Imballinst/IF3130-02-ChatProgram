@@ -17,7 +17,7 @@ List L;
 /* Program Utama */
 
 int main(int argc, char *argv[]) {
-	//addServerLog("Server is running\n");
+	addServerLog("Server started\n");
 	//deklarasi variabel
 	L.first = NULL;
 	bool running = true; //untuk status server running
@@ -82,7 +82,6 @@ int main(int argc, char *argv[]) {
 		addClientToList(&L,new_sockfd);
 		pthread_create(&threadid[i++], &attr, &threadworker, (void *) new_sockfd);
 
-		sleep(0); //memberikan thread beberapa waktu untuk melakukan proses di CPU
 	}
 	printf("Server closing\n");
 	//addServerLog("Server closed\n");
@@ -218,13 +217,13 @@ bool authenticate(char *user, char *pass) {
 
 void doActions(int sockfd, char *msg) {
 	/* PREKONDISI: READ 1 WRITE 1 */
-	if (strcmp(msg,"signup\n") == 0) { //signup, status = 1
+	if (strcmp(msg,"signup\n") == 0) { //message = signup
 		signup(sockfd);
-	} else if (strcmp(msg,"login\n") == 0) { //login, status = 2
+	} else if (strcmp(msg,"login\n") == 0) { //message = login
 		login(&L,sockfd);
-	} else if (strcmp(msg,"logout\n") == 0) { //logout, status = 3
+	} else if (strcmp(msg,"logout\n") == 0) { //message = logout
 		logout(&L,sockfd);
-	} else if (isMessage(msg)){ //user send message
+	} else if (isMessage(msg)){ //message = message
 		sendMessage(&L,sockfd,msg);
 	}
 }
@@ -325,6 +324,13 @@ void signup(int sockfd) {
 	else { //nama belum ada, signup berhasil
 		//menuliskan ke database
 		writeUsername(nama,pass);
+		/* Buat file pending message */
+		char path2[50] = "assets/server/pending_messages/";
+		strncat(path2,nama,strlen(nama));
+		strncat(path2,".txt",4);
+		FILE *f = fopen(path2,"w");
+		fclose(f);
+		/* Selesai membuat */
 		//menuliskan ke client [3]
 		sprintf(buffer, "Username berhasil dibuat!\n");
 	}
@@ -377,17 +383,11 @@ void login(List *L, int sockfd) {
 		/* LABEL WRITE 2 */
 		rw = write(sockfd, buffer, strlen(buffer));
 		addUsernameToList(L, sockfd, nama);
+		sleep(1);
 		retrievePendingMessage(nama,sockfd);
-		/* Buat file pending message */
-		char path2[50] = "assets/server/pending_messages/";
-		strncat(path2,nama,strlen(nama));
-		strncat(path2,".txt",4);
-		FILE *f = fopen(path2,"w");
-		fclose(f);
-		/* Selesai membuat */
 		char slog[50] = "";
 		strcpy(slog,nama);
-		strncat(slog," logged in\n",11);
+		strncat(slog," logged in",11);
 		addServerLog(slog);
 	}
 	else {
@@ -421,7 +421,10 @@ void logout(List *L, int sockfd) {
 	}
 	if (found) {
 		printf("User %s logged out successfully from client with socket ID %d\n", uname, sockfd);
-		addServerLog("%s logged out\n",uname);
+		char slog[50] = "";
+		strcpy(slog, uname);
+		strncat(slog," logged out",12);
+		addServerLog(slog);
 	}
 }
 
@@ -435,7 +438,10 @@ void addUsernameToList(List *L, int sockfd, char *user) {
 			found = true;
 			strcpy(iter->username,user);
 			printf("Success adding %s to client with socket ID %d\n", iter->username, sockfd);
-			addServerLog("%s signed up\n",iter->username);
+			char slog[50] = "";
+			strcpy(slog, iter->username);
+			strncat(slog," logged out",12);
+			addServerLog(slog);
 		}
 		else {
 			iter = iter->next;
@@ -488,10 +494,10 @@ void retrievePendingMessage(char *dest_client, int sockfd) {
 	int rw;
 	char *buffer;
 	buffer = malloc(BUFFER_SIZE);
+	bzero(buffer,BUFFER_SIZE);
 	if(FServer){
 		char line[256];
 		if (fgets(line, sizeof(line), FServer) != NULL) { //file ada isinya
-			bzero(buffer,BUFFER_SIZE);
 			sprintf(buffer,"Ada isinya");
 			/* LABEL WRITE 3 */
 			rw = write(sockfd, buffer, BUFFER_SIZE);
@@ -706,7 +712,7 @@ void addServerLog(char *log) {
 		time( &rawtime );
 		info = localtime( &rawtime );
 		strftime(date,80,"[%x - %I:%M%p] ", info);
-		fprintf(f,"%s: %s\n", info, log);
+		fprintf(f,"%s: %s\n", date, log);
 	}
 	fclose(f);
 }
@@ -725,40 +731,13 @@ bool isUserInGroup(char* group, char* user){
 	char output[255]; //jumlah yang mungkin didapat dalam satu line di file .txt
 	user = removeNewline(user);
 	int ret = false, i, stat = 1, j = 0; //return, iterator, status looping, dan index password
-	/*FILE *f = fopen("assets/%s.txt",group,"r"); //buka file dalam bentuk "membaca"
-	char line[256];
-	printf("\n");
-	while (fgets(line, sizeof(line), f) {
-		if(strcmp(line,user) == 0){
-		ret = true;
-		fclose(f);
-	}*/
 	return ret;
 }
 
 void addUserToGroup(char* group, char* user){
-	/*if(!isUserInGroup(group,user)){
-		FILE *f = fopen("assets/%s.txt",group,"a");
-		fprintf("%s\n",user);
-		fclose(f);
-	}*/
+	
 }
 
 void delUser(char* group, char* user){
-	/*if(isUserInGroup(group,user)){
-	   	FILE *source = fopen("/assets/%s.txt",group,"r");
-		FILE *dummy = fopen("assets/dummy.txt"); 
-	   	char line[256];
-		printf("\n");
-		while (fgets(line, sizeof(line), source) {
-			if(!strcmp(line,user) == 0){
-				fputs(line,dummy);
-			}
-		}
-		char line2[256];
-		printf("\n");
-		while (fgets(line2, sizeof(line2), dummy) {
-				fputs(line,source);
-		}
-	}*/
+	
 }
