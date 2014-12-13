@@ -17,7 +17,7 @@ List L;
 /* Program Utama */
 
 int main(int argc, char *argv[]) {
-	addServerLog("Server started\n");
+	addServerLog("Server started");
 	//deklarasi variabel
 	L.first = NULL;
 	bool running = true; //untuk status server running
@@ -83,8 +83,8 @@ int main(int argc, char *argv[]) {
 		pthread_create(&threadid[i++], &attr, &threadworker, (void *) new_sockfd);
 
 	}
-	printf("Server closing\n");
-	//addServerLog("Server closed\n");
+	printf("Server closing");
+	addServerLog("Server closed");
 	return 0;
 }
 
@@ -113,6 +113,7 @@ void *threadworker(void *arg) {
   		bzero(buffer, BUFFER_SIZE); //mengosongkan memori buffer
   		bzero(response, BUFFER_SIZE); //mengosongkan memori response
   		/* LABEL READ 1 */
+  		printf("read threadworker\n");
 		rw = read(sockfd, buffer, BUFFER_SIZE); //melakukan pembacaan terhadap socket
 		strcpy(response,buffer);
 		if (rw < 0)  { //apabila pembacaan gagal
@@ -124,6 +125,7 @@ void *threadworker(void *arg) {
 		bzero(buffer, BUFFER_SIZE); //mengosongkan memori buffer
 		sprintf(buffer, "Acknowledgement from TID:0x%x\n", pthread_self()); //menerima ACK
 		/* LABEL WRITE 1 */
+		printf("Reply ke client: %s\n", buffer);
 		rw = write(sockfd, buffer, strlen(buffer)); //menuliskan pesan
 		if (rw < 0)  { //apabila penulisan gagal
 		    perror("Error writing to socket, exiting thread");
@@ -623,6 +625,8 @@ void sendMessage(List *L, int sockfd, char *message){
 		//membaca inputan isiMessage
 		/* LABEL READ 2 */
 		rw = read(sockfd, buffer, BUFFER_SIZE);
+		printf("Message: %s", message);
+		printf("isiMessage: %s", buffer);
 		if (rw < 0) {
 			perror("Error membaca input isi message\n");
 			exit(-1);
@@ -652,10 +656,11 @@ void sendMessage(List *L, int sockfd, char *message){
 		strcat(date,buffer);
 		strcpy(buffer,date);
 		strcpy(isiMessage,buffer);
-		printf("Message: %s", isiMessage);\
+		printf("Message: %s", isiMessage);
 		//mengirim pesan
 		int sockToWho = userSocketInClientList(L,user);
 		if(sockToWho != -1){ // user nya online
+			printf("User online\n");
 			// online, kirim isiMessage ke user:
 			// isiMessage ditaruh ke log, terus buffernya diisi sama string "New message from usernya siapa"
 			// naruh isi Message di lognya sender sama user:
@@ -680,6 +685,7 @@ void sendMessage(List *L, int sockfd, char *message){
 		else{ // usernya offline
 			// misal userA ngesend chat isiMessage ke userB yang offline
 			// isiMessage disimpan di assets/server/pending_messages
+			printf("User offline\n");
 			addPendingMessage(sender_,user,isiMessage);
 		}
 	}
