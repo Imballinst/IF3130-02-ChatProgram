@@ -517,20 +517,23 @@ void retrievePendingMessage(char *dest_client, int sockfd) {
 					//mengirim src client
 					bzero(buffer,BUFFER_SIZE);
 					sprintf(buffer,src_client);
+					printf("Source client: %s\n", buffer);
 					/* LABEL WRITE 4 */
 					rw = write(sockfd, buffer, BUFFER_SIZE);
 					//mengirim dest client
 					bzero(buffer,BUFFER_SIZE);
 					sprintf(buffer,dest_client);
+					printf("Dest client: %s\n", buffer);
 					/* LABEL WRITE 5 */
 					rw = write(sockfd, buffer, BUFFER_SIZE);
 					//mengirimkan pesan ke client yang dituju
 					bzero(buffer,BUFFER_SIZE);
 					sprintf(buffer,line);
+					printf("Pesan: %s\n", buffer);
 					/* LABEL WRITE 6 */
 					rw = write(sockfd, buffer, BUFFER_SIZE);
+					strcpy(src_client,"");
 				}
-				strcpy(src_client,"");
 			}
 			bzero(buffer,BUFFER_SIZE);
 			sprintf(buffer,"Sudah habis");

@@ -184,13 +184,13 @@ void handleActions(int sockfd, char *prevmsg) {
 					bzero(buffer,BUFFER_SIZE);
 					/* LABEL READ 4 */
 					rw = read(sockfd, buffer, BUFFER_SIZE);
-					strcpy(dest_client,buffer);
-					if (strcmp(dest_client,"Sudah habis") != 0) { //pesan yang diterima sudah habis
+					if (strcmp(buffer,"Sudah habis") != 0) { //pesan yang diterima sudah habis
+						strcpy(src_client,buffer);
 						//mengirim dest client
 						bzero(buffer,BUFFER_SIZE);
 						/* LABEL READ 5 */
 						rw = read(sockfd, buffer, BUFFER_SIZE);
-						strcpy(src_client,buffer);
+						strcpy(dest_client,buffer);
 						//mengirimkan pesan ke client yang dituju
 						bzero(buffer,BUFFER_SIZE);
 						/* LABEL READ 6 */
@@ -216,7 +216,6 @@ void handleActions(int sockfd, char *prevmsg) {
 			else { //tidak ada isinya
 				printf("Anda tidak memiliki pesan baru\n");
 			}
-			printf("Akhir if\n");
 		}
 		free(buffer);
 		free(response);
