@@ -46,8 +46,11 @@ int main(int argc, char *argv[]) {
 	}
 	//koneksi sukses
 	printf("Connection established!\n");
+	//inisialisasi message header
+	messageHeader = malloc(BUFFER_SIZE);
+	strcpy(messageHeader,"> Please enter a message: ");
 	do {
-		printf("Please enter a message: ");
+		printf("%s", messageHeader);
 		//mengosongkan buffer
 		bzero(buffer, BUFFER_SIZE);
 		bzero(comparison, BUFFER_SIZE);
@@ -61,13 +64,15 @@ int main(int argc, char *argv[]) {
 			exit(-1);
 		}
 		//mengosongkan buffer lagi
-		bzero(buffer, BUFFER_SIZE);
-		/* LABEL READ 1 */
-		rw = read(sockfd, buffer, BUFFER_SIZE);
-		if (rw < 0) { //apabila gagal
-			perror("Error reading from socket");
-			exit(-1);
-		}
+		do {
+			bzero(buffer, BUFFER_SIZE);
+			/* LABEL READ 1 */
+			rw = read(sockfd, buffer, BUFFER_SIZE);
+			if (rw < 0) { //apabila gagal
+				perror("Error reading from socket");
+				exit(-1);
+			}
+		} while (strlen(buffer) == 0);
 		printf("ACK: %s\n", buffer); //menerima pesan ACK
 		handleActions(sockfd, comparison);
 	} while (checkExitMsg(comparison) == 0); //selama bukan "exit"
@@ -176,7 +181,6 @@ void handleActions(int sockfd, char *prevmsg) {
 			bzero(buffer,BUFFER_SIZE);
 			rw = read(sockfd, buffer, BUFFER_SIZE);
 			if (strcmp(buffer,"Ada isinya") == 0) {
-				printf("b\n");
 				bool loop = true;
 				do {
 					/* Proses menulis message pending dari server ke client */
@@ -216,13 +220,24 @@ void handleActions(int sockfd, char *prevmsg) {
 			else { //tidak ada isinya
 				printf("Anda tidak memiliki pesan baru\n");
 			}
+			//new message header
+			char newMessageHeader[50] = "> ";
+			strncat(newMessageHeader,removeNewline(user),strlen(removeNewline(user)));
+			strncat(newMessageHeader,": ",2);
+			bzero(messageHeader,BUFFER_SIZE);
+			strcpy(messageHeader,newMessageHeader);
 		}
 		free(buffer);
 		free(response);
 		free(temp);
 	}
 	else if (strcmp("logout\n",prevmsg) == 0) { //logout
-		//do nothing
+		//new message header
+		char newMessageHeader[50] = "> ";
+		strncat(newMessageHeader,"Please enter a message: ", 24);
+		strncat(newMessageHeader,": ",2);
+		bzero(messageHeader,BUFFER_SIZE);
+		strcpy(messageHeader,newMessageHeader);
 	}
 	else if(isMessage(prevmsg)){
 		response = malloc(BUFFER_SIZE);
