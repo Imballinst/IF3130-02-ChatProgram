@@ -49,6 +49,7 @@ int main(int argc, char *argv[]) {
 	//inisialisasi message header
 	messageHeader = malloc(BUFFER_SIZE);
 	strcpy(messageHeader,"> Please enter a message: ");
+	bool nullBuffer = false;
 	do {
 		printf("%s", messageHeader);
 		//mengosongkan buffer
@@ -72,7 +73,22 @@ int main(int argc, char *argv[]) {
 				perror("Error reading from socket");
 				exit(-1);
 			}
-		} while (strlen(buffer) == 0);
+			//cek apakah buffer null atau tidak
+			if (strlen(buffer) == 0) {
+				nullBuffer = true; //apabila true, maka akan diulang pembacaan
+			}
+			else { //apabila buffer tidak null, maka cek apakah ACK atau bukan
+				while (strncmp(buffer,"Acknow",6) != 0) { //apabila bukan ACK, kalau dia ACK, langsung keluar dari loop dan else
+					printf("%s\n", buffer);
+					bzero(buffer,BUFFER_SIZE);
+					rw = read(sockfd, buffer, BUFFER_SIZE);
+					if (rw < 0) { //apabila gagal
+						perror("Error reading from socket");
+						exit(-1);
+					}
+				}
+			}
+		} while (nullBuffer);
 		printf("ACK: %s\n", buffer); //menerima pesan ACK
 		handleActions(sockfd, comparison);
 	} while (checkExitMsg(comparison) == 0); //selama bukan "exit"
