@@ -9,11 +9,11 @@
 #ifndef ADTFUNGSIPROSEDUR_H
 #define ADTFUNGSIPROSEDUR_H
 
- #define BUFFER_SIZE 256 //maksimum buffer message [0..255]
- #include <string.h>
- #include <errno.h>
- #include <stdbool.h>
- #include <stdio.h>
+#define BUFFER_SIZE 256 //maksimum buffer message [0..255]
+#include <string.h>
+#include <errno.h>
+#include <stdbool.h>
+#include <stdio.h>	
 
 /* Header fungsi dan prosedur */
 
@@ -30,14 +30,6 @@ char* removeNewline(char *msg);
 bool isMessage(char *message);
 
 bool isShowMessage(char *message);
-
-bool isUserExistDB(char *user);
-
-bool isCreateGroup(char *message);
-
-bool isJoinGroup(char *message);
-
-bool isLeaveGroup(char *message);
 
 bool isUserExistDB(char *user);
 

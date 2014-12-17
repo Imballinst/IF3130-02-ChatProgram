@@ -16,6 +16,10 @@
 #include <stdbool.h>
 #include <time.h>
 #include "adtfungsiprosedur.h"
+#include <sys/types.h>
+#include <sys/stat.h>
+
+struct stat st = {0}; //untuk masalah pembuatan direktori
 
 /* Pre-prosesor */
 
@@ -120,5 +124,10 @@ void addServerLog(char *log);
 /* Menambahkan log ke server log, apabila belum ada folder/filenya, buat baru.
  * Param: string log.
  */
+bool isCreateGroup(char *message);
+
+bool isJoinGroup(char *message);
+
+bool isLeaveGroup(char *message);
 
 #endif

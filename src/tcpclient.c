@@ -216,21 +216,21 @@ void handleActions(int sockfd, char *prevmsg) {
 						bzero(buffer,BUFFER_SIZE);
 						/* LABEL READ 6 */
 						rw = read(sockfd, buffer, BUFFER_SIZE);
+						/* Menulis di file eksternal */
+						char pathUser[100] = "assets/client/chat_log/";
+						strncat(pathUser,dest_client,strlen(dest_client));
+						strncat(pathUser,"/",1);
+						strncat(pathUser,src_client,strlen(src_client));
+						strncat(pathUser,".txt",4);
+						FILE *FUser = fopen(pathUser,"a");
+						if(FUser){
+							fputs(buffer,FUser);
+						}
+						fclose(FUser);
 					}
 					else {
 						loop = false;
 					}
-					/* Menulis di file eksternal */
-					char pathUser[100] = "assets/client/chat_log/";
-					strncat(pathUser,dest_client,strlen(dest_client));
-					strncat(pathUser,"/",1);
-					strncat(pathUser,src_client,strlen(src_client));
-					strncat(pathUser,".txt",4);
-					FILE *FUser = fopen(pathUser,"a");
-					if(FUser){
-						fputs(buffer,FUser);
-					}
-					fclose(FUser);
 					printf("Ada pesan baru dari %s\n", src_client);
 				} while (loop);
 			}
@@ -361,31 +361,13 @@ void handleActions(int sockfd, char *prevmsg) {
 		}
 	}
 	else if(isCreateGroup(prevmsg)){
-		int msgLength = strlen(prevmsg);
-		int groupLength = msgLength - 6;
-		char *group = (char*) malloc(groupLength);
-		strncpy(group,prevmsg+7,groupLength);
-		group = removeNewline(group);
-		newGroup(group);
-		addUserToGroup(group,user);
-		printf("Berhasil membuat group!\n");
+		//do nothing
 	}
 	else if(isJoinGroup(prevmsg)){
-		int msgLength = strlen(prevmsg);
-		int groupLength = msgLength - 4;
-		char *group = (char*) malloc(groupLength);
-		strncpy(group,prevmsg+5,groupLength);
-		group = removeNewline(group);
-		addUserToGroup(group,user);
+		//do nothing
 	}
 	else if(isLeaveGroup(prevmsg)){
-		int msgLength = strlen(prevmsg);
-		int groupLength = msgLength - 5;
-		char *group = (char*) malloc(groupLength);
-		strncpy(group,prevmsg+6,groupLength);
-		group = removeNewline(group);
-		delUser(group,user);
-		printf("Berhasil leave dari group!\n");
+		//do nothing
 	}
 }
 
@@ -399,81 +381,47 @@ void createClientLogFolder(char *username) {
 	}
 }
 
-/* GROUP */
-void newGroup(char* group) {
-	char path[100] = "assets/";
-	strncat(path,group,strlen(group));
-	strncat(path,".txt",4);
-	FILE *f = fopen(path,"a"); //membuka file dengan tipe "append"
-	//remove newline
-	group = removeNewline(group);
-	if (f) { //apabila tidak gagal
-		printf("Berhasil membuat group\n");
-	}
-	fclose(f);
-}
-
-
-bool isUserInGroup(char* group, char* user){
-	char output[255]; //jumlah yang mungkin didapat dalam satu line di file .txt
-	user = removeNewline(user);
-	int ret = false, i, stat = 1, j = 0; //return, iterator, status looping, dan index password
-	char path[100] = "assets/";
-	strncat(path,group,strlen(group));
-	strncat(path,".txt",4);
-	FILE *f = fopen(path,"r"); //buka file dalam bentuk "membaca"
-	char line[256];
-	printf("\n");
-	while ((fgets(line, sizeof(line), f)) && !ret) {
-		strcat(user,"\n");
-		if(strcmp(line,user) == 0){
-			ret = true;
-			fclose(f);
+bool isCreateGroup(char *message){
+	char msg[] = "create ";
+	bool same = true;
+	int i = 0;
+	while(same && (i <= 6)){
+		if(message[i]==msg[i]){
+			i++;
+		}
+		else{
+			same = false;
 		}
 	}
-	return ret;
+	return same;
 }
 
-void addUserToGroup(char* group, char* user){
-	if(!isUserInGroup(group,user)){
-		char path[100] = "assets/";
-		strncat(path,group,strlen(group));
-		strncat(path,".txt",4);
-		FILE *f = fopen(path,"a");
-			if(f){
-				fprintf(f,"%s\n",user);
-			}
-		fclose(f);
+bool isJoinGroup(char *message){
+	char msg[] = "join ";
+	bool same = true;
+	int i = 0;
+	while(same && (i <= 4)){
+		if(message[i]==msg[i]){
+			i++;
+		}
+		else{
+			same = false;
+		}
 	}
-	else{
-		printf("User sudah berada di dalam group ini. Tidak ditambahkan\n");
-	}
+	return same;
 }
 
-void delUser(char* group, char* user){
-	if(isUserInGroup(group,user)){
-		char path[100] = "assets/";
-		strncat(path,group,strlen(group));
-		strncat(path,".txt",4);
-	   	FILE *source = fopen(path,"r");
-		FILE *dummy = fopen("assets/dummy.txt","a"); 
-	   	char line[256];
-		while (fgets(line, sizeof(line), source)){
-			strcat(user,"\n");
-			if(!strcmp(line,user) == 0){
-				fputs(line,dummy);
-			}
+bool isLeaveGroup(char *message){
+	char msg[] = "leave ";
+	bool same = true;
+	int i = 0;
+	while(same && (i <= 5)){
+		if(message[i]==msg[i]){
+			i++;
 		}
-		char line2[256];
-		while (fgets(line2, sizeof(line2), dummy)){
-			fputs(line,source);
+		else{
+			same = false;
 		}
-		fclose(source);
-		fclose(dummy);
-		FILE *dummy2 = fopen("assets/dummy.txt","w");
-		if(dummy2){
-			fputs("",dummy);
-			fclose(dummy2);
-		}		
 	}
+	return same;
 }

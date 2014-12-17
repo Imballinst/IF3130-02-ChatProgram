@@ -14,13 +14,14 @@
 #include <pthread.h>
 #include <unistd.h>
 #include <stdbool.h>
+#include "adtfungsiprosedur.h"
 #include <sys/types.h>
 #include <sys/stat.h>
-#include "adtfungsiprosedur.h"
+
+struct stat st = {0}; //untuk masalah pembuatan direktori
 
 /* Tipe bentukan dan struktur */
 
-struct stat st = {0}; //untuk masalah pembuatan direktori
 char user[25];
 char *messageHeader;
 
@@ -44,5 +45,11 @@ void createClientLogFolder(char *username);
  * Didalam folder tersebut akan ada file-file .txt yang namanya username-username lain yang pernah melakukan chat dengan client <username>
  * Param: string username.
  */
+ 
+bool isCreateGroup(char *message);
+
+bool isJoinGroup(char *message);
+
+bool isLeaveGroup(char *message);
 
 #endif
