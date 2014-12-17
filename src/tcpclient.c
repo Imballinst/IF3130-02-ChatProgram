@@ -78,6 +78,7 @@ int main(int argc, char *argv[]) {
 				nullBuffer = true; //apabila true, maka akan diulang pembacaan
 			}
 			else { //apabila buffer tidak null, maka cek apakah ACK atau bukan
+				nullBuffer = false;
 				while (strncmp(buffer,"Acknow",6) != 0) { //apabila bukan ACK, kalau dia ACK, langsung keluar dari loop dan else
 					printf("%s\n", buffer);
 					bzero(buffer,BUFFER_SIZE);
